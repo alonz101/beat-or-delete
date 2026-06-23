@@ -10,7 +10,7 @@ from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 VERDICT_COLORS = {
     "CLUB READY":   colors.HexColor("#1a7a3e"),
-    "CASUAL OK":    colors.HexColor("#2e6da4"),
+    "CASUAL OK":    colors.HexColor("#2a7a6e"),
     "MARGINAL":     colors.HexColor("#c97a00"),
     "DO NOT PLAY":  colors.HexColor("#b52b2b"),
 }
