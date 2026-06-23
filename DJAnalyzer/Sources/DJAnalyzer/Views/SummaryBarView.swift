@@ -8,7 +8,7 @@ struct SummaryBarView: View {
         items.compactMap { if case .done(let r) = $0.state { return r } else { return nil } }
     }
 
-    private var counts: [String: Int] {
+    private var counts: [Verdict: Int] {
         done.reduce(into: [:]) { $0[$1.verdict, default: 0] += 1 }
     }
 
@@ -31,15 +31,15 @@ struct SummaryBarView: View {
 
             Divider().frame(height: 16)
 
-            ForEach(["CLUB READY", "CASUAL OK", "MARGINAL", "DO NOT PLAY"], id: \.self) { verdict in
+            ForEach(Verdict.allCases, id: \.self) { verdict in
                 if let count = counts[verdict] {
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(verdictColor(verdict))
+                            .fill(verdict.color)
                             .frame(width: 8, height: 8)
                         Text("\(count)")
                             .font(.system(size: 12, weight: .semibold))
-                        Text(verdict)
+                        Text(verdict.displayName)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                     }
@@ -66,13 +66,5 @@ struct SummaryBarView: View {
         .overlay(Divider(), alignment: .top)
     }
 
-    private func verdictColor(_ verdict: String) -> Color {
-        switch verdict {
-        case "CLUB READY":  return Color(hex: "1a7a3e")
-        case "CASUAL OK":   return Color(hex: "2e6da4")
-        case "MARGINAL":    return Color(hex: "c97a00")
-        case "DO NOT PLAY": return Color(hex: "b52b2b")
-        default:            return .gray
-        }
-    }
+
 }

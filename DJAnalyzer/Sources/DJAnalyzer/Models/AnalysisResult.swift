@@ -87,7 +87,7 @@ struct AnalysisResult: Codable, Identifiable {
     let vinyl: VinylInfo?
     let clickCount: Int
     let flags: [String]
-    let verdict: String
+    let verdict: Verdict
     let verdictReasons: [String]
     let spectrogramPath: String?
 

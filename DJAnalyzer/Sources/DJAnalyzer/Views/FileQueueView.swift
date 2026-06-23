@@ -16,19 +16,19 @@ struct FileQueueView: View {
         case .all: return items
         case .doNotPlay:
             return items.filter {
-                if case .done(let r) = $0.state { return r.verdict == "DO NOT PLAY" }
+                if case .done(let r) = $0.state { return r.verdict == .doNotPlay }
                 return false
             }
         case .marginalPlus:
             return items.filter {
                 if case .done(let r) = $0.state {
-                    return r.verdict == "DO NOT PLAY" || r.verdict == "MARGINAL"
+                    return r.verdict == .doNotPlay || r.verdict == .marginal
                 }
                 return false
             }
         case .clubReady:
             return items.filter {
-                if case .done(let r) = $0.state { return r.verdict == "CLUB READY" }
+                if case .done(let r) = $0.state { return r.verdict == .clubReady }
                 return false
             }
         }
