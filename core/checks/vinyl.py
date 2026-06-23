@@ -8,22 +8,29 @@ from core.config import (
     VINYL_CLICK_MANY,
     VINYL_CLICK_FEW,
     VINYL_HUM_SCORE,
-    VINYL_WOW_SCORE_THRESHOLD,
     VINYL_WOW_FLUTTER_FLAG,
+    VINYL_CRACKLE_MANY,
+    VINYL_CRACKLE_FEW,
     VINYL_GRADE_NOISE_POOR_DBFS,
     VINYL_GRADE_NOISE_ACCEPTABLE_DBFS,
     VINYL_GRADE_CLICK_POOR,
-    VINYL_GRADE_WOW_POOR,
-    VINYL_GRADE_WOW_ACCEPTABLE,
+    VINYL_GRADE_CRACKLE_POOR,
+    VINYL_GRADE_CRACKLE_ACCEPTABLE,
 )
 
 
-def check_vinyl(data: np.ndarray, sr: int, noise_floor_dbfs: float, click_count: int) -> dict:
+def check_vinyl(
+    data: np.ndarray,
+    sr: int,
+    noise_floor_dbfs: float,
+    click_count: int,
+    crackle_count: int,
+) -> dict:
     mono = data.mean(axis=1) if data.ndim > 1 else data
 
     hum_hz = _detect_hum(mono, sr)
     wow_flutter = _estimate_wow_flutter(mono, sr)
-    is_vinyl = _is_likely_vinyl(noise_floor_dbfs, click_count, hum_hz, wow_flutter)
+    is_vinyl = _is_likely_vinyl(noise_floor_dbfs, click_count, crackle_count, hum_hz)
 
     if not is_vinyl:
         return {
@@ -31,15 +38,17 @@ def check_vinyl(data: np.ndarray, sr: int, noise_floor_dbfs: float, click_count:
             "wow_flutter_wrms": None,
             "hum_hz": None,
             "vinyl_grade": None,
+            "crackle_count": crackle_count,
         }
 
-    grade = _grade_vinyl(noise_floor_dbfs, click_count, wow_flutter, hum_hz)
+    grade = _grade_vinyl(noise_floor_dbfs, click_count, crackle_count, hum_hz)
 
     return {
         "vinyl_rip": True,
         "wow_flutter_wrms": round(wow_flutter, 4),
         "hum_hz": hum_hz,
         "vinyl_grade": grade,
+        "crackle_count": crackle_count,
     }
 
 
@@ -88,17 +97,16 @@ def _estimate_wow_flutter(mono: np.ndarray, sr: int, block_size: float = 0.05) -
 def _is_likely_vinyl(
     noise_floor: float,
     click_count: int,
+    crackle_count: int,
     hum_hz: float | None,
-    wow_flutter: float,
 ) -> bool:
     has_elevated_noise = noise_floor != -120.0 and noise_floor > VINYL_NOISE_GATE_DBFS
     has_clicks = click_count is not None and click_count >= VINYL_CLICK_FEW
+    has_crackle = crackle_count >= VINYL_CRACKLE_FEW
     has_hum = hum_hz is not None
 
-    if not has_elevated_noise and not has_clicks:
+    if not has_elevated_noise and not has_clicks and not has_crackle:
         return False
-
-    has_hard_indicator = has_elevated_noise or has_hum or has_clicks
 
     score = 0
     if has_elevated_noise:
@@ -110,15 +118,18 @@ def _is_likely_vinyl(
             score += 1
     if has_hum:
         score += VINYL_HUM_SCORE
-    if wow_flutter > VINYL_WOW_SCORE_THRESHOLD and has_hard_indicator:
+    if crackle_count >= VINYL_CRACKLE_MANY:
+        score += 2
+    elif crackle_count >= VINYL_CRACKLE_FEW:
         score += 1
+
     return score >= VINYL_MIN_SCORE
 
 
 def _grade_vinyl(
     noise_floor: float,
     click_count: int,
-    wow_flutter: float,
+    crackle_count: int,
     hum_hz: float | None,
 ) -> str:
     issues = 0
@@ -130,9 +141,9 @@ def _grade_vinyl(
         issues += 2
     elif click_count > 0:
         issues += 1
-    if wow_flutter > VINYL_GRADE_WOW_POOR:
+    if crackle_count > VINYL_GRADE_CRACKLE_POOR:
         issues += 2
-    elif wow_flutter > VINYL_GRADE_WOW_ACCEPTABLE:
+    elif crackle_count > VINYL_GRADE_CRACKLE_ACCEPTABLE:
         issues += 1
     if hum_hz is not None:
         issues += 1

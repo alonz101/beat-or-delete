@@ -73,8 +73,13 @@ struct ReportCardView: View {
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
-                    if let clicks = result.clickCount as Int?, clicks > 0 {
-                        Text("\(clicks) click(s)")
+                    if result.clickCount > 0 {
+                        Text("\(result.clickCount) click(s)")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.secondary)
+                    }
+                    if let crackle = vinyl.crackleCount, crackle > 0 {
+                        Text("\(crackle) crackle")
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(.secondary)
                     }

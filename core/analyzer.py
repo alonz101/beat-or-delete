@@ -12,7 +12,7 @@ from core.checks.spectral import check_spectral
 from core.checks.integrity import check_integrity
 from core.checks.loudness import check_loudness
 from core.checks.vinyl import check_vinyl
-from core.checks.clicks import count_clicks
+from core.checks.clicks import count_clicks_and_crackle
 from core.verdict import compute_verdict
 from core.spectrogram import generate_spectrogram
 from core.utils import numpy_to_native
@@ -30,8 +30,8 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
     spectral = check_spectral(path)
     integrity = check_integrity(data, sr, path)
     loudness = check_loudness(data, sr)
-    click_count = count_clicks(data, sr)
-    vinyl = check_vinyl(data, sr, integrity["noise_floor_dbfs"], click_count)
+    click_count, crackle_count = count_clicks_and_crackle(data, sr)
+    vinyl = check_vinyl(data, sr, integrity["noise_floor_dbfs"], click_count, crackle_count)
 
     verdict = compute_verdict(meta, spectral, integrity, loudness, vinyl)
 
@@ -71,6 +71,7 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
         },
         "vinyl": vinyl,
         "click_count": click_count,
+        "crackle_count": crackle_count,
         "flags": verdict["flags"],
         "verdict": verdict["verdict"],
         "verdict_reasons": verdict["reasons"],

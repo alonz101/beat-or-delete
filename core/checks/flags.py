@@ -107,8 +107,7 @@ def compute_flags(
         if wf and wf > VINYL_WOW_FLUTTER_FLAG:
             flags.append("WOW_FLUTTER")
             reasons.append(
-                f"wow & flutter {wf:.2f}% — audible pitch drift on sustained sounds "
-                f"(threshold: {VINYL_WOW_FLUTTER_FLAG}%)"
+                f"estimated wow & flutter {wf:.2f}% (proxy measurement — improving in future version)"
             )
         if hum:
             flags.append("HUM")
