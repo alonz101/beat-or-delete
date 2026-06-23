@@ -1,6 +1,8 @@
 import numpy as np
 import soundfile as sf
 
+from core.config import CLIP_SAMPLE_THRESHOLD
+
 
 def check_integrity(path: str) -> dict:
     data, sr = sf.read(path, dtype="float32")
@@ -8,10 +10,10 @@ def check_integrity(path: str) -> dict:
 
     # Per-channel clipping
     if data.ndim > 1:
-        clip_L = int(np.sum(np.abs(data[:, 0]) >= 0.9999))
-        clip_R = int(np.sum(np.abs(data[:, 1]) >= 0.9999))
+        clip_L = int(np.sum(np.abs(data[:, 0]) >= CLIP_SAMPLE_THRESHOLD))
+        clip_R = int(np.sum(np.abs(data[:, 1]) >= CLIP_SAMPLE_THRESHOLD))
     else:
-        clip_L = int(np.sum(np.abs(data) >= 0.9999))
+        clip_L = int(np.sum(np.abs(data) >= CLIP_SAMPLE_THRESHOLD))
         clip_R = clip_L
 
     # Peak

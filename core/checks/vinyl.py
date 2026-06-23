@@ -3,12 +3,24 @@ import soundfile as sf
 from scipy.signal import correlate
 from scipy.fft import rfft, rfftfreq
 
+from core.config import (
+    VINYL_NOISE_GATE_DBFS,
+    VINYL_ELEVATED_NOISE_DBFS,
+    VINYL_MIN_SCORE,
+    VINYL_CLICK_MANY,
+    VINYL_CLICK_FEW,
+    VINYL_HUM_SCORE,
+    VINYL_WOW_SCORE_THRESHOLD,
+    VINYL_WOW_FLUTTER_FLAG,
+    VINYL_GRADE_NOISE_POOR_DBFS,
+    VINYL_GRADE_NOISE_ACCEPTABLE_DBFS,
+    VINYL_GRADE_CLICK_POOR,
+    VINYL_GRADE_WOW_POOR,
+    VINYL_GRADE_WOW_ACCEPTABLE,
+)
+
 
 def check_vinyl(path: str, noise_floor_dbfs: float, click_count: int) -> dict:
-    """
-    Heuristics to detect vinyl rips and assess their quality.
-    Returns vinyl_rip flag, wow_flutter_wrms, hum_hz, and vinyl_grade.
-    """
     data, sr = sf.read(path, dtype="float32")
     mono = data.mean(axis=1) if data.ndim > 1 else data
 
@@ -24,7 +36,6 @@ def check_vinyl(path: str, noise_floor_dbfs: float, click_count: int) -> dict:
             "vinyl_grade": None,
         }
 
-    # Grade the vinyl rip
     grade = _grade_vinyl(noise_floor_dbfs, click_count, wow_flutter, hum_hz)
 
     return {
@@ -36,8 +47,7 @@ def check_vinyl(path: str, noise_floor_dbfs: float, click_count: int) -> dict:
 
 
 def _detect_hum(mono: np.ndarray, sr: int) -> float | None:
-    """Detect 50Hz or 60Hz hum via FFT spike detection."""
-    chunk = mono[:sr * 10]  # first 10s
+    chunk = mono[:sr * 10]
     fft = np.abs(rfft(chunk))
     freqs = rfftfreq(len(chunk), 1 / sr)
 
@@ -53,16 +63,12 @@ def _detect_hum(mono: np.ndarray, sr: int) -> float | None:
 
 
 def _estimate_wow_flutter(mono: np.ndarray, sr: int, block_size: float = 0.05) -> float:
-    """
-    Estimate wow & flutter as WRMS of short-term pitch deviation.
-    Uses zero-crossing rate as a pitch proxy — fast and dependency-free.
-    """
     block = int(sr * block_size)
     zcr_vals = []
     for i in range(0, len(mono) - block, block):
         seg = mono[i:i + block]
         rms = np.sqrt(np.mean(seg ** 2))
-        if rms < 0.001:  # skip silence
+        if rms < 0.001:
             continue
         zc = np.sum(np.diff(np.sign(seg)) != 0)
         zcr_vals.append(zc / block)
@@ -75,13 +81,11 @@ def _estimate_wow_flutter(mono: np.ndarray, sr: int, block_size: float = 0.05) -
     if mean_zcr == 0:
         return 0.0
 
-    # WRMS of deviation from mean (normalized)
     deviation = (zcr - mean_zcr) / mean_zcr
-    # Weight toward wow (low freq) by smoothing
     from scipy.ndimage import uniform_filter1d
     smoothed = uniform_filter1d(deviation, size=20)
     wrms = float(np.sqrt(np.mean(smoothed ** 2)))
-    return min(wrms, 1.0)  # cap at 1.0
+    return min(wrms, 1.0)
 
 
 def _is_likely_vinyl(
@@ -90,16 +94,10 @@ def _is_likely_vinyl(
     hum_hz: float | None,
     wow_flutter: float,
 ) -> bool:
-    """Heuristic: is this file likely a vinyl rip?"""
-    # Hard gate: clean digital files have noise floors below -62 dBFS.
-    # Without this, hum + ZCR flutter false-positives on Bandcamp/Beatport files.
-    # Use a slightly looser threshold for the gate (-58) vs the scoring threshold (-55)
-    has_elevated_noise = noise_floor != -120.0 and noise_floor > -58
-    has_clicks = click_count is not None and click_count >= 1
+    has_elevated_noise = noise_floor != -120.0 and noise_floor > VINYL_NOISE_GATE_DBFS
+    has_clicks = click_count is not None and click_count >= VINYL_CLICK_FEW
     has_hum = hum_hz is not None
 
-    # Gate: require physical noise hiss or actual clicks.
-    # Hum alone is not enough — it can false-positive on bass content in clean digital files.
     if not has_elevated_noise and not has_clicks:
         return False
 
@@ -109,16 +107,15 @@ def _is_likely_vinyl(
     if has_elevated_noise:
         score += 2
     if click_count is not None:
-        if click_count >= 3:
+        if click_count >= VINYL_CLICK_MANY:
             score += 2
-        elif click_count >= 1:
+        elif click_count >= VINYL_CLICK_FEW:
             score += 1
     if has_hum:
-        score += 3
-    # Wow/flutter only counts when at least one other indicator is present
-    if wow_flutter > 0.3 and has_hard_indicator:
+        score += VINYL_HUM_SCORE
+    if wow_flutter > VINYL_WOW_SCORE_THRESHOLD and has_hard_indicator:
         score += 1
-    return score >= 3
+    return score >= VINYL_MIN_SCORE
 
 
 def _grade_vinyl(
@@ -128,17 +125,17 @@ def _grade_vinyl(
     hum_hz: float | None,
 ) -> str:
     issues = 0
-    if noise_floor != -120.0 and noise_floor > -45:
+    if noise_floor != -120.0 and noise_floor > VINYL_GRADE_NOISE_POOR_DBFS:
         issues += 2
-    elif noise_floor != -120.0 and noise_floor > -55:
+    elif noise_floor != -120.0 and noise_floor > VINYL_GRADE_NOISE_ACCEPTABLE_DBFS:
         issues += 1
-    if click_count > 5:
+    if click_count > VINYL_GRADE_CLICK_POOR:
         issues += 2
     elif click_count > 0:
         issues += 1
-    if wow_flutter > 0.15:
+    if wow_flutter > VINYL_GRADE_WOW_POOR:
         issues += 2
-    elif wow_flutter > 0.05:
+    elif wow_flutter > VINYL_GRADE_WOW_ACCEPTABLE:
         issues += 1
     if hum_hz is not None:
         issues += 1
