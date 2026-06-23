@@ -4,8 +4,7 @@ import soundfile as sf
 from core.config import CLIP_SAMPLE_THRESHOLD
 
 
-def check_integrity(path: str) -> dict:
-    data, sr = sf.read(path, dtype="float32")
+def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
     mono = data.mean(axis=1) if data.ndim > 1 else data
 
     # Per-channel clipping
@@ -55,7 +54,7 @@ def check_integrity(path: str) -> dict:
             rms3.append(20 * np.log10(rms))
     dynamic_range = round(max(rms3) - min(rms3), 1) if len(rms3) > 1 else 0.0
 
-    # Fake 24-bit check (only meaningful if declared 24-bit)
+    # Fake 24-bit: needs int32 read — can't derive from float32
     data_int, _ = sf.read(path, dtype="int32")
     lsb_mask = data_int & 0xFF
     lsb_zero_ratio = round(float(np.sum(lsb_mask == 0) / lsb_mask.size), 4)

@@ -1,9 +1,7 @@
 import numpy as np
-import soundfile as sf
 
 
-def count_clicks(path: str) -> int:
-    data, sr = sf.read(path, dtype="float32")
+def count_clicks(data: np.ndarray, sr: int) -> int:
     mono = data.mean(axis=1) if data.ndim > 1 else data
     max_click_samples = int(sr * 0.005)  # 5ms
     block = sr // 4

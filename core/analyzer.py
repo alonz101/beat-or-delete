@@ -3,6 +3,8 @@ import sys
 import json
 from pathlib import Path
 
+import soundfile as sf
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.checks.metadata import get_metadata
@@ -21,12 +23,15 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
     if not p.exists():
         return {"error": f"File not found: {path}"}
 
+    # Load audio once — all float32 checks share this
+    data, sr = sf.read(str(p), dtype="float32")
+
     meta = get_metadata(path)
     spectral = check_spectral(path)
-    integrity = check_integrity(path)
-    loudness = check_loudness(path)
-    click_count = count_clicks(path)
-    vinyl = check_vinyl(path, integrity["noise_floor_dbfs"], click_count)
+    integrity = check_integrity(data, sr, path)
+    loudness = check_loudness(data, sr)
+    click_count = count_clicks(data, sr)
+    vinyl = check_vinyl(data, sr, integrity["noise_floor_dbfs"], click_count)
 
     verdict = compute_verdict(meta, spectral, integrity, loudness, vinyl)
 
@@ -78,7 +83,6 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
             pass
 
     return result
-
 
 
 if __name__ == "__main__":

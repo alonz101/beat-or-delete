@@ -1,6 +1,4 @@
 import numpy as np
-import soundfile as sf
-from scipy.signal import correlate
 from scipy.fft import rfft, rfftfreq
 
 from core.config import (
@@ -20,8 +18,7 @@ from core.config import (
 )
 
 
-def check_vinyl(path: str, noise_floor_dbfs: float, click_count: int) -> dict:
-    data, sr = sf.read(path, dtype="float32")
+def check_vinyl(data: np.ndarray, sr: int, noise_floor_dbfs: float, click_count: int) -> dict:
     mono = data.mean(axis=1) if data.ndim > 1 else data
 
     hum_hz = _detect_hum(mono, sr)
