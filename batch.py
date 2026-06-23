@@ -5,6 +5,7 @@ Usage:
 
 Outputs: report.csv + report.pdf in the same dir as the input (or cwd).
 """
+import os
 import sys
 import json
 import argparse
@@ -16,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from core.analyzer import analyze
 from core.export.csv_writer import write_csv
 from core.export.pdf_writer import write_pdf
+from core.utils import numpy_to_native
 
 SUPPORTED = {".aiff", ".aif", ".wav", ".flac", ".mp3", ".m4a", ".aac", ".ogg"}
 
@@ -40,7 +42,7 @@ def run_batch(input_path: str, output_stem: str | None = None) -> dict:
     print(f"Analyzing {len(files)} file(s)...", file=sys.stderr)
 
     results = []
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
         futures = {pool.submit(analyze, str(f)): f for f in files}
         for i, future in enumerate(as_completed(futures), 1):
             f = futures[future]
@@ -79,11 +81,6 @@ if __name__ == "__main__":
     summary = run_batch(args.input, args.output)
 
     if args.json:
-        def to_native(obj):
-            import numpy as np
-            if isinstance(obj, (np.floating,)): return float(obj)
-            if isinstance(obj, (np.integer,)): return int(obj)
-            return obj
-        print(json.dumps(summary["results"], indent=2, default=to_native))
+        print(json.dumps(summary["results"], indent=2, default=numpy_to_native))
     else:
         print(f"\nDone. {summary['files']} files analyzed.", file=sys.stderr)

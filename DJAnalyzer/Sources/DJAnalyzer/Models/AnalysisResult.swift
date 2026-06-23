@@ -78,8 +78,9 @@ struct VinylInfo: Codable {
 }
 
 struct AnalysisResult: Codable, Identifiable {
-    var id: String { filename }
+    var id: String { filePath ?? filename }
     let filename: String
+    let filePath: String?
     let format: AudioFormat
     let authenticity: Authenticity
     let playability: Playability
@@ -92,6 +93,7 @@ struct AnalysisResult: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case filename, format, authenticity, playability, vinyl, flags, verdict
+        case filePath = "file_path"
         case clickCount = "click_count"
         case verdictReasons = "verdict_reasons"
         case spectrogramPath = "spectrogram_path"

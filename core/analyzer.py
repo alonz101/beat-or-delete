@@ -10,8 +10,10 @@ from core.checks.spectral import check_spectral
 from core.checks.integrity import check_integrity
 from core.checks.loudness import check_loudness
 from core.checks.vinyl import check_vinyl
+from core.checks.clicks import count_clicks
 from core.verdict import compute_verdict
 from core.spectrogram import generate_spectrogram
+from core.utils import numpy_to_native
 
 
 def analyze(path: str, with_spectrogram: bool = False) -> dict:
@@ -23,15 +25,14 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
     spectral = check_spectral(path)
     integrity = check_integrity(path)
     loudness = check_loudness(path)
-
-    # Count clicks for vinyl check (samples >20dB above local RMS, <5ms)
-    click_count = _count_clicks(path)
+    click_count = count_clicks(path)
     vinyl = check_vinyl(path, integrity["noise_floor_dbfs"], click_count)
 
     verdict = compute_verdict(meta, spectral, integrity, loudness, vinyl)
 
     result = {
         "filename": p.name,
+        "file_path": str(p.resolve()),
         "format": {
             "container": meta["container"],
             "codec": meta["codec"],
@@ -79,29 +80,6 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
     return result
 
 
-def _count_clicks(path: str) -> int:
-    import soundfile as sf
-    import numpy as np
-    data, sr = sf.read(path, dtype="float32")
-    mono = data.mean(axis=1) if data.ndim > 1 else data
-    max_click_samples = int(sr * 0.005)  # 5ms
-    block = sr // 4
-    clicks = 0
-    for i in range(0, len(mono) - block, block):
-        seg = mono[i:i + block]
-        rms = np.sqrt(np.mean(seg ** 2))
-        if rms < 1e-4:
-            continue
-        threshold = rms * 50  # ~34dB above local RMS — well above musical transients
-        above = np.where(np.abs(seg) > threshold)[0]
-        if len(above) == 0:
-            continue
-        # Count isolated bursts (groups of samples close together)
-        gaps = np.diff(above)
-        bursts = 1 + np.sum(gaps > max_click_samples)
-        clicks += int(bursts)
-    return clicks
-
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -110,11 +88,4 @@ if __name__ == "__main__":
 
     with_spec = "--spectrogram" in sys.argv
     result = analyze(sys.argv[1], with_spectrogram=with_spec)
-
-    def to_native(obj):
-        import numpy as np
-        if isinstance(obj, (np.floating, np.float32, np.float64)): return float(obj)
-        if isinstance(obj, (np.integer,)): return int(obj)
-        return obj
-
-    print(json.dumps(result, indent=2, default=to_native))
+    print(json.dumps(result, indent=2, default=numpy_to_native))

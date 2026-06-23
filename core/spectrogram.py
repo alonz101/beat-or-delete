@@ -5,7 +5,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import tempfile
-import os
 
 
 def generate_spectrogram(path: str, duration: float = 30.0) -> str:
