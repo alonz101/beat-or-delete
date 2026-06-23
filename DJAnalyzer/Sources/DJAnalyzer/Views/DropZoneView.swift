@@ -5,16 +5,6 @@ struct DropZoneView: View {
     let onFiles: ([URL]) -> Void
     @State private var isTargeted = false
 
-    private let supportedTypes: [UTType] = [
-        .audio, .folder, .directory,
-        UTType(filenameExtension: "aiff") ?? .audio,
-        UTType(filenameExtension: "aif")  ?? .audio,
-        UTType(filenameExtension: "flac") ?? .audio,
-        UTType(filenameExtension: "mp3")  ?? .audio,
-        UTType(filenameExtension: "wav")  ?? .audio,
-        UTType(filenameExtension: "m4a")  ?? .audio,
-    ]
-
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
@@ -50,7 +40,7 @@ struct DropZoneView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 160)
-        .onDrop(of: supportedTypes, isTargeted: $isTargeted) { providers in
+        .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             loadDropped(providers)
             return true
         }
@@ -73,10 +63,12 @@ struct DropZoneView: View {
 
         for provider in providers {
             group.enter()
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { item, _ in
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
                 defer { group.leave() }
-                if let data = item as? Data,
-                   let url = URL(dataRepresentation: data, relativeTo: nil) {
+                if let url = item as? URL {
+                    urls.append(url)
+                } else if let data = item as? Data,
+                          let url = URL(dataRepresentation: data, relativeTo: nil) {
                     urls.append(url)
                 }
             }
