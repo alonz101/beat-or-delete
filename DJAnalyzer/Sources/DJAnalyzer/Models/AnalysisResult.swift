@@ -38,8 +38,9 @@ struct Authenticity: Codable {
 }
 
 struct Playability: Codable {
-    let clippedSamplesL: Int
-    let clippedSamplesR: Int
+    let clipEventsL: Int
+    let clipEventsR: Int
+    let clipMaxMs: Double
     let peakDbfs: Double
     let loudnessLufs: Double
     let truePeakLDbfs: Double
@@ -50,8 +51,9 @@ struct Playability: Codable {
     let dcOffsetR: Double
 
     enum CodingKeys: String, CodingKey {
-        case clippedSamplesL = "clipped_samples_L"
-        case clippedSamplesR = "clipped_samples_R"
+        case clipEventsL = "clip_events_L"
+        case clipEventsR = "clip_events_R"
+        case clipMaxMs = "clip_max_ms"
         case peakDbfs = "peak_dbfs"
         case loudnessLufs = "loudness_lufs"
         case truePeakLDbfs = "true_peak_L_dbfs"

@@ -46,7 +46,7 @@ struct ReportCardView: View {
                     ("LAME header", result.authenticity.lameHeader ? "YES" : "no"),
                 ])
                 statsSection("PLAYABILITY", items: [
-                    ("Clipping L/R", "\(result.playability.clippedSamplesL) / \(result.playability.clippedSamplesR)"),
+                    ("Clip events L/R", "\(result.playability.clipEventsL) / \(result.playability.clipEventsR)"),
                     ("Peak", String(format: "%.2f dBFS", result.playability.peakDbfs)),
                     ("Loudness", String(format: "%.2f LUFS", result.playability.loudnessLufs)),
                     ("Dyn. range", String(format: "%.1f dB", result.playability.dynamicRangeDb)),

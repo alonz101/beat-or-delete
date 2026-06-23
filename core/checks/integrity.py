@@ -1,19 +1,35 @@
 import numpy as np
 import soundfile as sf
 
-from core.config import CLIP_SAMPLE_THRESHOLD
+from core.config import CLIP_SAMPLE_THRESHOLD, CLIP_MIN_RUN
+
+
+def _clip_events(channel: np.ndarray, sr: int) -> tuple[int, float]:
+    at_max = np.abs(channel) >= CLIP_SAMPLE_THRESHOLD
+    if not at_max.any():
+        return 0, 0.0
+    padded = np.concatenate([[False], at_max, [False]])
+    changes = np.diff(padded.astype(np.int8))
+    starts = np.where(changes == 1)[0]
+    ends = np.where(changes == -1)[0]
+    lengths = ends - starts
+    events = lengths[lengths >= CLIP_MIN_RUN]
+    if len(events) == 0:
+        return 0, 0.0
+    return int(len(events)), float(events.max()) / sr * 1000
 
 
 def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
     mono = data.mean(axis=1) if data.ndim > 1 else data
 
-    # Per-channel clipping
+    # Per-channel clipping events (contiguous runs of >= CLIP_MIN_RUN samples at ceiling)
     if data.ndim > 1:
-        clip_L = int(np.sum(np.abs(data[:, 0]) >= CLIP_SAMPLE_THRESHOLD))
-        clip_R = int(np.sum(np.abs(data[:, 1]) >= CLIP_SAMPLE_THRESHOLD))
+        events_L, max_ms_L = _clip_events(data[:, 0], sr)
+        events_R, max_ms_R = _clip_events(data[:, 1], sr)
     else:
-        clip_L = int(np.sum(np.abs(data) >= CLIP_SAMPLE_THRESHOLD))
-        clip_R = clip_L
+        events_L, max_ms_L = _clip_events(data, sr)
+        events_R, max_ms_R = events_L, max_ms_L
+    clip_max_ms = round(max(max_ms_L, max_ms_R), 2)
 
     # Peak
     peak = float(np.max(np.abs(data)))
@@ -28,7 +44,6 @@ def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
         dc_R = dc_L
 
     # Noise floor: only from blocks that are >35dB below the loudest block
-    # (isolates true silent/near-silent passages from quiet music)
     block = sr // 2
     rms_blocks_raw = []
     for i in range(0, len(mono) - block, block):
@@ -60,8 +75,9 @@ def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
     lsb_zero_ratio = round(float(np.sum(lsb_mask == 0) / lsb_mask.size), 4)
 
     return {
-        "clipped_samples_L": clip_L,
-        "clipped_samples_R": clip_R,
+        "clip_events_L": events_L,
+        "clip_events_R": events_R,
+        "clip_max_ms": clip_max_ms,
         "peak_dbfs": peak_dbfs,
         "dc_offset_L": dc_L,
         "dc_offset_R": dc_R,

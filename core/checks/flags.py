@@ -2,8 +2,10 @@ from core.config import (
     BITRATE_320_THRESHOLD,
     BITRATE_192_THRESHOLD,
     LSB_ZERO_RATIO_FAKE_24BIT,
-    CLIP_BLOCKING_COUNT,
-    CLIP_MARGINAL_COUNT,
+    CLIP_BLOCKING_EVENTS,
+    CLIP_MARGINAL_EVENTS,
+    CLIP_BLOCKING_MS,
+    CLIP_MARGINAL_MS,
     DYNAMIC_RANGE_BLOCKING_DB,
     DYNAMIC_RANGE_MARGINAL_DB,
     NOISE_FLOOR_MARGINAL_DBFS,
@@ -71,12 +73,16 @@ def compute_flags(
         reasons.append("declared 24-bit but LSBs are all zero — likely upsampled from 16-bit")
 
     # --- Playability ---
-    total_clips = integrity["clipped_samples_L"] + integrity["clipped_samples_R"]
-    if total_clips > CLIP_BLOCKING_COUNT:
+    total_events = integrity["clip_events_L"] + integrity["clip_events_R"]
+    max_ms = integrity["clip_max_ms"]
+    if total_events > CLIP_BLOCKING_EVENTS or max_ms > CLIP_BLOCKING_MS:
         flags.append("CLIPPING")
-        reasons.append(f"{total_clips} clipped samples detected")
-    elif total_clips > CLIP_MARGINAL_COUNT:
+        dur = f" — longest {max_ms:.1f}ms" if max_ms >= 1 else ""
+        reasons.append(f"{total_events} clipping event{'s' if total_events != 1 else ''} detected{dur}")
+    elif total_events > CLIP_MARGINAL_EVENTS or max_ms > CLIP_MARGINAL_MS:
         flags.append("MINOR_CLIPPING")
+        dur = f" — longest {max_ms:.1f}ms" if max_ms >= 1 else ""
+        reasons.append(f"{total_events} minor clipping event{'s' if total_events != 1 else ''}{dur}")
 
     if integrity["dynamic_range_db"] > 0:
         if integrity["dynamic_range_db"] < DYNAMIC_RANGE_BLOCKING_DB:

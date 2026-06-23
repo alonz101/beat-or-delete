@@ -127,7 +127,7 @@ def write_pdf(results: list[dict], output_path: str) -> str:
         # Stats grid
         stats = [
             ["FORMAT", "", "AUTHENTICITY", "", "PLAYABILITY", ""],
-            ["Codec", fmt["codec"], "Spectral coverage", f"{auth['spectral_coverage_ratio']*100:.1f}%", "Clipping L/R", f"{play['clipped_samples_L']} / {play['clipped_samples_R']}"],
+            ["Codec", fmt["codec"], "Spectral coverage", f"{auth['spectral_coverage_ratio']*100:.1f}%", "Clip events L/R", f"{play['clip_events_L']} / {play['clip_events_R']}"],
             ["Sample rate", f"{fmt['sample_rate']} Hz", "Top freq", f"{auth['top_freq_hz']:.0f} Hz", "Peak", f"{play['peak_dbfs']} dBFS"],
             ["Bit depth", f"{fmt['bit_depth']}-bit" if fmt['bit_depth'] else "n/a", "Spectral verdict", auth["spectral_verdict"], "Loudness", f"{play['loudness_lufs']} LUFS"],
             ["Bitrate", f"{round(fmt['bitrate']/1000)}kbps" if fmt['bitrate'] else "n/a", "LAME header", str(auth["lame_header"]), "Dynamic range", f"{play['dynamic_range_db']:.1f} dB"],

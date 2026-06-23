@@ -16,9 +16,12 @@ BITRATE_320_THRESHOLD = 310_000   # claims 320kbps if bitrate >= this
 BITRATE_192_THRESHOLD = 190_000   # claims ~192kbps if bitrate >= this
 
 # --- Integrity ---
-CLIP_SAMPLE_THRESHOLD = 0.9999          # |sample| >= this counts as clipped
-CLIP_BLOCKING_COUNT = 200               # total clips > this → CLIPPING (blocking)
-CLIP_MARGINAL_COUNT = 50                # total clips > this → MINOR_CLIPPING
+CLIP_SAMPLE_THRESHOLD = 0.9999          # |sample| >= this is at ceiling
+CLIP_MIN_RUN = 2                        # consecutive ceiling samples → one event
+CLIP_BLOCKING_EVENTS = 20              # total events > this → CLIPPING (blocking)
+CLIP_MARGINAL_EVENTS = 3               # total events > this → MINOR_CLIPPING
+CLIP_BLOCKING_MS = 100.0               # OR longest event > this ms → CLIPPING
+CLIP_MARGINAL_MS = 10.0                # OR longest event > this ms → MINOR_CLIPPING
 LSB_ZERO_RATIO_FAKE_24BIT = 0.95       # > this on 24-bit file → FAKE_24BIT
 DYNAMIC_RANGE_BLOCKING_DB = 4.0        # < this → OVER_COMPRESSED (blocking)
 DYNAMIC_RANGE_MARGINAL_DB = 6.0        # < this → LOW_DYNAMIC_RANGE

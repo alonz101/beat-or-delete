@@ -57,8 +57,9 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
             "lsb_zero_ratio": integrity["lsb_zero_ratio"],
         },
         "playability": {
-            "clipped_samples_L": integrity["clipped_samples_L"],
-            "clipped_samples_R": integrity["clipped_samples_R"],
+            "clip_events_L": integrity["clip_events_L"],
+            "clip_events_R": integrity["clip_events_R"],
+            "clip_max_ms": integrity["clip_max_ms"],
             "peak_dbfs": integrity["peak_dbfs"],
             "loudness_lufs": loudness["loudness_lufs"],
             "true_peak_L_dbfs": loudness["true_peak_L_dbfs"],
