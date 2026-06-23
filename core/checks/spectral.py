@@ -10,6 +10,7 @@ from core.config import (
     SPECTRAL_MP3_128_CUTOFF_HZ,
     SPECTRAL_MP3_192_CUTOFF_HZ,
     SPECTRAL_MP3_320_CUTOFF_HZ,
+    SPECTRAL_MUSIC_CEILING_HZ,
 )
 
 
@@ -24,12 +25,13 @@ def check_spectral(path: str, analysis_duration: float = SPECTRAL_ANALYSIS_DURAT
     active_bins = np.where(avg_per_bin > SPECTRAL_ACTIVE_BIN_FLOOR_DB)[0]
 
     nyquist = sr / 2
+    effective_nyquist = min(nyquist, SPECTRAL_MUSIC_CEILING_HZ)
     if len(active_bins) == 0:
         top_freq = 0.0
         ratio = 0.0
     else:
         top_freq = float(freqs[active_bins[-1]])
-        ratio = top_freq / nyquist
+        ratio = top_freq / effective_nyquist
 
     if ratio < SPECTRAL_FAKE_LOSSLESS_RATIO:
         verdict = "FAKE_LOSSLESS"

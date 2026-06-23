@@ -51,10 +51,13 @@ def compute_flags(
     else:
         if sv == "FAKE_LOSSLESS":
             flags.append("FAKE_LOSSLESS")
+            if spectral["suspected_origin"] == "likely genuine lossless":
+                origin_text = "possibly sample-rate converted"
+            else:
+                origin_text = f"transcoded from {spectral['suspected_origin']}"
             reasons.append(
                 f"lossless container but spectral ceiling at {spectral['top_freq_hz']:.0f}Hz "
-                f"({spectral['coverage_ratio']*100:.1f}% of Nyquist) — "
-                f"transcoded from: {spectral['suspected_origin']}"
+                f"({spectral['coverage_ratio']*100:.1f}% of Nyquist) — {origin_text}"
             )
         elif sv == "SUSPECT":
             flags.append("SUSPECT_LOSSLESS")
@@ -62,8 +65,6 @@ def compute_flags(
                 f"spectral coverage only {spectral['coverage_ratio']*100:.1f}% of Nyquist — "
                 f"possible lossy transcode"
             )
-        if sv in ("FAKE_LOSSLESS", "SUSPECT"):
-            flags.append("UPSAMPLED")
 
     if meta["bit_depth"] == 24 and integrity["lsb_zero_ratio"] > LSB_ZERO_RATIO_FAKE_24BIT:
         flags.append("FAKE_24BIT")
@@ -99,18 +100,20 @@ def compute_flags(
         hum = vinyl.get("hum_hz")
         if wf and wf > VINYL_WOW_FLUTTER_FLAG:
             flags.append("WOW_FLUTTER")
-            reasons.append(f"wow & flutter {wf:.3f}% WRMS — pitch instability")
+            reasons.append(
+                f"wow & flutter {wf:.2f}% — audible pitch drift on sustained sounds "
+                f"(threshold: {VINYL_WOW_FLUTTER_FLAG}%)"
+            )
         if hum:
             flags.append("HUM")
-            reasons.append(f"{hum:.0f}Hz hum detected — grounding issue during rip")
+            reasons.append(f"{hum:.0f}Hz hum detected — power line interference during rip")
         if grade == "POOR":
-            reasons.append("vinyl rip quality: POOR — multiple issues detected")
-        elif grade == "ACCEPTABLE":
-            reasons.append("vinyl rip: acceptable quality with minor issues")
+            reasons.append("vinyl rip condition: poor — multiple quality issues")
 
     if loudness["true_peak_L_dbfs"] > TRUE_PEAK_HOT_DBFS or loudness["true_peak_R_dbfs"] > TRUE_PEAK_HOT_DBFS:
         flags.append("PEAK_HOT")
-        reasons.append("sample peak at 0dBFS — gain headroom is gone")
+        peak = max(loudness["true_peak_L_dbfs"], loudness["true_peak_R_dbfs"])
+        reasons.append(f"peak at {peak:.2f} dBFS — headroom tight, ease up on gain when mixing")
 
     # Loudness informational flags — DJs can compensate with gain; never blocks verdict
     lufs = loudness["loudness_lufs"]
