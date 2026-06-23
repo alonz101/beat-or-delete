@@ -1,0 +1,8 @@
+librosa
+soundfile
+mutagen
+pyloudnorm
+scipy
+numpy
+matplotlib
+reportlab

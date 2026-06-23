@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+
+# PyInstaller build artifacts
+build/work/
+build/dist/
+build/BeatOrDelete.app
+build/DJAnalyzer.app
+build/BeatOrDelete.dmg
+
+# Audio test files
+*.aiff
+*.mp3
+*.flac
+*.wav
+
+# Test reports
+test_report.csv
+test_report.pdf
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Swift build
+DJAnalyzer/.build/
+DJAnalyzer/build/
+
+# Temp spectrograms
+/tmp/*.png
