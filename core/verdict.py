@@ -1,5 +1,4 @@
 from core.checks.flags import compute_flags
-from core.config import LUFS_CLUB_MIN, LUFS_CLUB_MAX
 
 BLOCKING = {"FAKE_LOSSLESS", "FAKE_320", "CLIPPING", "OVER_COMPRESSED"}
 MARGINAL = {
@@ -23,9 +22,6 @@ def compute_verdict(
         verdict = "DO NOT PLAY"
     elif flag_set & MARGINAL:
         verdict = "MARGINAL"
-    elif loudness["loudness_lufs"] < LUFS_CLUB_MIN or loudness["loudness_lufs"] > LUFS_CLUB_MAX:
-        verdict = "CASUAL OK"
-        reasons.append(f"loudness {loudness['loudness_lufs']} LUFS — may need gain adjustment")
     else:
         verdict = "CLUB READY"
 

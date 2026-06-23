@@ -10,6 +10,8 @@ from core.config import (
     DC_OFFSET_THRESHOLD,
     VINYL_WOW_FLUTTER_FLAG,
     TRUE_PEAK_HOT_DBFS,
+    LUFS_CLUB_MIN,
+    LUFS_CLUB_MAX,
 )
 
 
@@ -109,5 +111,14 @@ def compute_flags(
     if loudness["true_peak_L_dbfs"] > TRUE_PEAK_HOT_DBFS or loudness["true_peak_R_dbfs"] > TRUE_PEAK_HOT_DBFS:
         flags.append("PEAK_HOT")
         reasons.append("sample peak at 0dBFS — gain headroom is gone")
+
+    # Loudness informational flags — DJs can compensate with gain; never blocks verdict
+    lufs = loudness["loudness_lufs"]
+    if lufs < LUFS_CLUB_MIN:
+        flags.append("LOUDNESS_LOW")
+        reasons.append(f"loudness {lufs} LUFS — crank the gain, but watch headroom")
+    elif lufs > LUFS_CLUB_MAX:
+        flags.append("LOUDNESS_HOT")
+        reasons.append(f"loudness {lufs} LUFS — louder than typical club master")
 
     return flags, reasons
