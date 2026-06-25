@@ -23,9 +23,10 @@ def compute_flags(
     integrity: dict,
     loudness: dict,
     vinyl: dict | None = None,
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str], list[str]]:
     flags: list[str] = []
-    reasons: list[str] = []
+    verdict_reasons: list[str] = []   # drive the verdict color (red)
+    info_reasons: list[str] = []      # informational only (yellow)
 
     # --- Authenticity ---
     if meta["lame_header"]:
@@ -39,13 +40,13 @@ def compute_flags(
         if sv in ("FAKE_LOSSLESS", "SUSPECT"):
             if bitrate >= BITRATE_320_THRESHOLD:
                 flags.append("FAKE_320")
-                reasons.append(
+                verdict_reasons.append(
                     f"declared 320kbps but spectral ceiling at {spectral['top_freq_hz']:.0f}Hz "
                     f"— actual quality matches {spectral['suspected_origin']}"
                 )
             elif bitrate >= BITRATE_192_THRESHOLD:
                 flags.append("LOW_QUALITY_MP3")
-                reasons.append(
+                verdict_reasons.append(
                     f"spectral ceiling at {spectral['top_freq_hz']:.0f}Hz "
                     f"({spectral['coverage_ratio']*100:.1f}% of Nyquist) — "
                     f"quality below declared bitrate"
@@ -57,20 +58,20 @@ def compute_flags(
                 origin_text = "possibly sample-rate converted"
             else:
                 origin_text = f"transcoded from {spectral['suspected_origin']}"
-            reasons.append(
+            verdict_reasons.append(
                 f"lossless container but spectral ceiling at {spectral['top_freq_hz']:.0f}Hz "
                 f"({spectral['coverage_ratio']*100:.1f}% of Nyquist) — {origin_text}"
             )
         elif sv == "SUSPECT":
             flags.append("SUSPECT_LOSSLESS")
-            reasons.append(
+            verdict_reasons.append(
                 f"spectral coverage only {spectral['coverage_ratio']*100:.1f}% of Nyquist — "
                 f"possible lossy transcode"
             )
 
     if meta["bit_depth"] == 24 and integrity["lsb_zero_ratio"] > LSB_ZERO_RATIO_FAKE_24BIT:
         flags.append("FAKE_24BIT")
-        reasons.append("declared 24-bit but LSBs are all zero — likely upsampled from 16-bit")
+        info_reasons.append("declared 24-bit but LSBs are all zero — likely upsampled from 16-bit")
 
     # --- Playability ---
     total_events = integrity["clip_events_L"] + integrity["clip_events_R"]
@@ -78,22 +79,22 @@ def compute_flags(
     if total_events > CLIP_BLOCKING_EVENTS or max_ms > CLIP_BLOCKING_MS:
         flags.append("CLIPPING")
         dur = f" — longest {max_ms:.1f}ms" if max_ms >= 1 else ""
-        reasons.append(f"{total_events} clipping event{'s' if total_events != 1 else ''} detected{dur}")
+        verdict_reasons.append(f"{total_events} clipping event{'s' if total_events != 1 else ''} detected{dur}")
     elif total_events > CLIP_MARGINAL_EVENTS or max_ms > CLIP_MARGINAL_MS:
         flags.append("MINOR_CLIPPING")
         dur = f" — longest {max_ms:.1f}ms" if max_ms >= 1 else ""
-        reasons.append(f"{total_events} minor clipping event{'s' if total_events != 1 else ''}{dur}")
+        verdict_reasons.append(f"{total_events} minor clipping event{'s' if total_events != 1 else ''}{dur}")
 
     if integrity["dynamic_range_db"] > 0:
         if integrity["dynamic_range_db"] < DYNAMIC_RANGE_BLOCKING_DB:
             flags.append("OVER_COMPRESSED")
-            reasons.append(f"dynamic range {integrity['dynamic_range_db']}dB — severely over-compressed")
+            verdict_reasons.append(f"dynamic range {integrity['dynamic_range_db']}dB — severely over-compressed")
         elif integrity["dynamic_range_db"] < DYNAMIC_RANGE_MARGINAL_DB:
             flags.append("LOW_DYNAMIC_RANGE")
 
     if integrity["noise_floor_dbfs"] > NOISE_FLOOR_MARGINAL_DBFS:
         flags.append("HIGH_NOISE_FLOOR")
-        reasons.append(f"noise floor at {integrity['noise_floor_dbfs']}dBFS — audible hiss at club volume")
+        verdict_reasons.append(f"noise floor at {integrity['noise_floor_dbfs']}dBFS — audible hiss at club volume")
 
     if abs(integrity["dc_offset_L"]) > DC_OFFSET_THRESHOLD or abs(integrity["dc_offset_R"]) > DC_OFFSET_THRESHOLD:
         flags.append("DC_OFFSET")
@@ -106,27 +107,25 @@ def compute_flags(
         hum = vinyl.get("hum_hz")
         if wf and wf > VINYL_WOW_FLUTTER_FLAG:
             flags.append("WOW_FLUTTER")
-            reasons.append(
-                f"estimated wow & flutter {wf:.2f}% (proxy measurement — improving in future version)"
-            )
+            info_reasons.append(f"estimated wow & flutter {wf:.2f}% (proxy measurement — improving in future version)")
         if hum:
             flags.append("HUM")
-            reasons.append(f"{hum:.0f}Hz hum detected — power line interference during rip")
+            verdict_reasons.append(f"{hum:.0f}Hz hum detected — power line interference during rip")
         if grade == "POOR":
-            reasons.append("vinyl rip condition: poor — multiple quality issues")
+            info_reasons.append("vinyl rip condition: poor — multiple quality issues")
 
     if loudness["true_peak_L_dbfs"] > TRUE_PEAK_HOT_DBFS or loudness["true_peak_R_dbfs"] > TRUE_PEAK_HOT_DBFS:
         flags.append("PEAK_HOT")
         peak = max(loudness["true_peak_L_dbfs"], loudness["true_peak_R_dbfs"])
-        reasons.append(f"peak at {peak:.2f} dBFS — headroom tight, ease up on gain when mixing")
+        info_reasons.append(f"peak at {peak:.2f} dBFS — headroom tight, ease up on gain when mixing")
 
     # Loudness informational flags — DJs can compensate with gain; never blocks verdict
     lufs = loudness["loudness_lufs"]
     if lufs < LUFS_CLUB_MIN:
         flags.append("LOUDNESS_LOW")
-        reasons.append(f"loudness {lufs} LUFS — crank the gain, but watch headroom")
+        info_reasons.append(f"loudness {lufs} LUFS — crank the gain, but watch headroom")
     elif lufs > LUFS_CLUB_MAX:
         flags.append("LOUDNESS_HOT")
-        reasons.append(f"loudness {lufs} LUFS — louder than typical club master")
+        info_reasons.append(f"loudness {lufs} LUFS — louder than typical club master")
 
-    return flags, reasons
+    return flags, verdict_reasons, info_reasons

@@ -53,9 +53,9 @@ def check_spectral(path: str, analysis_duration: float = SPECTRAL_ANALYSIS_DURAT
 
 def _classify_cutoff(freq_hz: float) -> str:
     if freq_hz < SPECTRAL_MP3_128_CUTOFF_HZ:
-        return "MP3 <=128kbps"
+        return "MP3 ~128kbps or lower"
     if freq_hz < SPECTRAL_MP3_192_CUTOFF_HZ:
-        return "MP3 192kbps"
+        return "MP3 ~192kbps"
     if freq_hz < SPECTRAL_MP3_320_CUTOFF_HZ:
-        return "MP3 320kbps"
+        return "MP3 ~256–320kbps"
     return "likely genuine lossless"

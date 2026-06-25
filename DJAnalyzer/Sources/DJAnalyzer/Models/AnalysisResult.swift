@@ -9,6 +9,8 @@ struct AudioFormat: Codable {
     let duration: Double
     let channels: Int
 
+    var isLossless: Bool { codec == "flac" || codec == "alac" || codec.hasPrefix("pcm") }
+
     enum CodingKeys: String, CodingKey {
         case container, codec
         case sampleRate = "sample_rate"
@@ -70,14 +72,12 @@ struct VinylInfo: Codable {
     let wowFlutterWrms: Double?
     let humHz: Double?
     let vinylGrade: String?
-    let crackleCount: Int?
 
     enum CodingKeys: String, CodingKey {
         case vinylRip = "vinyl_rip"
         case wowFlutterWrms = "wow_flutter_wrms"
         case humHz = "hum_hz"
         case vinylGrade = "vinyl_grade"
-        case crackleCount = "crackle_count"
     }
 }
 
@@ -93,6 +93,7 @@ struct AnalysisResult: Codable, Identifiable {
     let flags: [String]
     let verdict: Verdict
     let verdictReasons: [String]
+    let infoReasons: [String]
     let spectrogramPath: String?
 
     enum CodingKeys: String, CodingKey {
@@ -100,6 +101,7 @@ struct AnalysisResult: Codable, Identifiable {
         case filePath = "file_path"
         case clickCount = "click_count"
         case verdictReasons = "verdict_reasons"
+        case infoReasons = "info_reasons"
         case spectrogramPath = "spectrogram_path"
     }
 }

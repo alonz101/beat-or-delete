@@ -15,7 +15,7 @@ def compute_verdict(
     loudness: dict,
     vinyl: dict | None = None,
 ) -> dict:
-    flags, reasons = compute_flags(meta, spectral, integrity, loudness, vinyl)
+    flags, verdict_reasons, info_reasons = compute_flags(meta, spectral, integrity, loudness, vinyl)
     flag_set = set(flags)
 
     if flag_set & BLOCKING:
@@ -25,4 +25,4 @@ def compute_verdict(
     else:
         verdict = "CLUB READY"
 
-    return {"verdict": verdict, "flags": flags, "reasons": reasons}
+    return {"verdict": verdict, "flags": flags, "reasons": verdict_reasons, "info_reasons": info_reasons}

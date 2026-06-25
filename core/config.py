@@ -41,10 +41,6 @@ VINYL_CLICK_MANY = 3                   # clicks >= this → +2 score
 VINYL_CLICK_FEW = 1                    # clicks >= this → +1 score
 VINYL_HUM_SCORE = 3                    # hum detected → +this score
 VINYL_WOW_FLUTTER_FLAG = 0.15          # > this → WOW_FLUTTER flag (display only)
-VINYL_CRACKLE_MANY = 80                # crackle events >= this → +2 score
-VINYL_CRACKLE_FEW = 15                 # crackle events >= this → +1 score
 VINYL_GRADE_NOISE_POOR_DBFS = -45.0
 VINYL_GRADE_NOISE_ACCEPTABLE_DBFS = -55.0
-VINYL_GRADE_CLICK_POOR = 5
-VINYL_GRADE_CRACKLE_POOR = 100
-VINYL_GRADE_CRACKLE_ACCEPTABLE = 30
+VINYL_GRADE_CLICK_POOR = 20

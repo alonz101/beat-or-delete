@@ -15,7 +15,7 @@ struct ReportCardView: View {
                 VerdictBadge(verdict: result.verdict)
             }
 
-            // Reasons
+            // Verdict reasons (red — drive the verdict)
             if !result.verdictReasons.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(result.verdictReasons, id: \.self) { reason in
@@ -29,25 +29,39 @@ struct ReportCardView: View {
                 }
             }
 
+            // Info reasons (yellow — informational only, don't affect verdict)
+            if !result.infoReasons.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(result.infoReasons, id: \.self) { reason in
+                        HStack(alignment: .top, spacing: 4) {
+                            Text("•")
+                            Text(reason)
+                        }
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(hex: "b09030"))
+                    }
+                }
+            }
+
             // Stats grid
             HStack(alignment: .top, spacing: 16) {
                 statsSection("FORMAT", items: [
                     ("Codec", result.format.codec),
-                    ("Sample rate", "\(result.format.sampleRate) Hz"),
+                    ("Sample rate", formatSampleRate(result.format.sampleRate)),
                     ("Bit depth", result.format.bitDepth > 0 ? "\(result.format.bitDepth)-bit" : "n/a"),
-                    ("Bitrate", result.format.bitrate > 0 ? "\(result.format.bitrate / 1000)kbps" : "n/a"),
-                    ("Duration", String(format: "%.0fs", result.format.duration)),
+                    ("Bitrate", result.format.isLossless ? "lossless" : (result.format.bitrate > 0 ? "\(result.format.bitrate / 1000)kbps" : "n/a")),
+                    ("Duration", formatDuration(result.format.duration)),
                 ])
                 statsSection("AUTHENTICITY", items: [
                     ("Spectral coverage", String(format: "%.1f%%", result.authenticity.spectralCoverageRatio * 100)),
-                    ("Top freq", String(format: "%.0f Hz", result.authenticity.topFreqHz)),
+                    ("Top freq", String(format: "%.1f kHz", result.authenticity.topFreqHz / 1000)),
                     ("Verdict", result.authenticity.spectralVerdict),
                     ("Origin", result.authenticity.suspectedOrigin),
                     ("LAME header", result.authenticity.lameHeader ? "YES" : "no"),
                 ])
                 statsSection("PLAYABILITY", items: [
                     ("Clip events L/R", "\(result.playability.clipEventsL) / \(result.playability.clipEventsR)"),
-                    ("Peak", String(format: "%.2f dBFS", result.playability.peakDbfs)),
+                    ("Peak", formatPeak(result.playability.peakDbfs)),
                     ("Loudness", String(format: "%.2f LUFS", result.playability.loudnessLufs)),
                     ("Dyn. range", String(format: "%.1f dB", result.playability.dynamicRangeDb)),
                     ("Noise floor", String(format: "%.1f dBFS", result.playability.noiseFloorDbfs)),
@@ -75,11 +89,6 @@ struct ReportCardView: View {
                     }
                     if result.clickCount > 0 {
                         Text("\(result.clickCount) click(s)")
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundColor(.secondary)
-                    }
-                    if let crackle = vinyl.crackleCount, crackle > 0 {
-                        Text("\(crackle) crackle")
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
@@ -120,6 +129,21 @@ struct ReportCardView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color(NSColor.separatorColor), lineWidth: 1)
         )
+    }
+
+    private func formatDuration(_ seconds: Double) -> String {
+        let total = Int(seconds)
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
+    private func formatSampleRate(_ hz: Int) -> String {
+        let khz = Double(hz) / 1000.0
+        return khz.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(khz)) kHz" : String(format: "%.1f kHz", khz)
+    }
+
+    private func formatPeak(_ dbfs: Double) -> String {
+        let s = String(format: "%.2f", dbfs)
+        return (s == "-0.00" ? "0.00" : s) + " dBFS"
     }
 
     @ViewBuilder

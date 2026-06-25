@@ -59,15 +59,25 @@ def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
     else:
         noise_floor = -120.0
 
-    # Dynamic range (spread of 3s RMS blocks)
+    # Dynamic range: crest factor over loud sections (excludes quiet intros/outros)
     block3 = 3 * sr
-    rms3 = []
+    rms_lin, peak_lin = [], []
     for i in range(0, len(mono) - block3, block3):
         seg = mono[i:i + block3]
-        rms = np.sqrt(np.mean(seg ** 2))
-        if rms > 1e-6:
-            rms3.append(20 * np.log10(rms))
-    dynamic_range = round(max(rms3) - min(rms3), 1) if len(rms3) > 1 else 0.0
+        r = float(np.sqrt(np.mean(seg ** 2)))
+        p = float(np.max(np.abs(seg)))
+        if r > 1e-6:
+            rms_lin.append(r)
+            peak_lin.append(p)
+    if len(rms_lin) > 1:
+        cutoff = float(np.percentile(rms_lin, 25))
+        loud_r = [r for r in rms_lin if r >= cutoff]
+        loud_p = [p for r, p in zip(rms_lin, peak_lin) if r >= cutoff]
+        rms_avg = float(np.sqrt(np.mean(np.array(loud_r) ** 2)))
+        peak_avg = float(np.mean(loud_p))
+        dynamic_range = round(20 * np.log10(peak_avg / (rms_avg + 1e-12)), 1)
+    else:
+        dynamic_range = 0.0
 
     # Fake 24-bit: needs int32 read — can't derive from float32
     data_int, _ = sf.read(path, dtype="int32")
