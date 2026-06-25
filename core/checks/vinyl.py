@@ -23,12 +23,14 @@ def check_vinyl(
 ) -> dict:
     mono = data.mean(axis=1) if data.ndim > 1 else data
 
-    hum_hz = _detect_hum(mono, sr)
+    hum_result = _detect_hum(mono, sr)
+    hum_hz = hum_result[0] if hum_result else None
+    hum_db = hum_result[1] if hum_result else None
     wow_flutter = _estimate_wow_flutter(mono, sr)
     is_vinyl = _is_likely_vinyl(noise_floor_dbfs, click_count, hum_hz)
 
     if not is_vinyl:
-        return {"vinyl_rip": False, "wow_flutter_wrms": None, "hum_hz": None, "vinyl_grade": None}
+        return {"vinyl_rip": False, "wow_flutter_wrms": None, "hum_hz": None, "hum_db": None, "vinyl_grade": None}
 
     grade = _grade_vinyl(noise_floor_dbfs, click_count, hum_hz)
 
@@ -36,11 +38,12 @@ def check_vinyl(
         "vinyl_rip": True,
         "wow_flutter_wrms": round(wow_flutter, 4),
         "hum_hz": hum_hz,
+        "hum_db": hum_db,
         "vinyl_grade": grade,
     }
 
 
-def _detect_hum(mono: np.ndarray, sr: int) -> float | None:
+def _detect_hum(mono: np.ndarray, sr: int) -> tuple[float, float] | None:
     chunk = mono[:sr * 10]
     fft = np.abs(rfft(chunk))
     freqs = rfftfreq(len(chunk), 1 / sr)
@@ -52,7 +55,8 @@ def _detect_hum(mono: np.ndarray, sr: int) -> float | None:
             peak = fft[mask].max()
             baseline = np.percentile(fft[local], 75)
             if baseline > 0 and (peak / baseline) > 10:
-                return float(target)
+                hum_db = round(float(20 * np.log10(peak / baseline)), 1)
+                return (float(target), hum_db)
     return None
 
 

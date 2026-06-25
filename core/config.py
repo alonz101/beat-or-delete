@@ -41,6 +41,7 @@ VINYL_CLICK_MANY = 3                   # clicks >= this → +2 score
 VINYL_CLICK_FEW = 1                    # clicks >= this → +1 score
 VINYL_HUM_SCORE = 3                    # hum detected → +this score
 VINYL_WOW_FLUTTER_FLAG = 0.15          # > this → WOW_FLUTTER flag (display only)
+VINYL_HUM_STRONG_DB = 32.0             # hum spike > this dB above local floor → HUM flag (REVIEW)
 VINYL_GRADE_NOISE_POOR_DBFS = -45.0
 VINYL_GRADE_NOISE_ACCEPTABLE_DBFS = -55.0
 VINYL_GRADE_CLICK_POOR = 20

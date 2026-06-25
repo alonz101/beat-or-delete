@@ -13,6 +13,7 @@ from core.config import (
     NOISE_FLOOR_MARGINAL_DBFS,
     DC_OFFSET_THRESHOLD,
     VINYL_WOW_FLUTTER_FLAG,
+    VINYL_HUM_STRONG_DB,
     TRUE_PEAK_HOT_DBFS,
     LUFS_CLUB_MIN,
     LUFS_CLUB_MAX,
@@ -109,9 +110,18 @@ def compute_flags(
         if wf and wf > VINYL_WOW_FLUTTER_FLAG:
             flags.append("WOW_FLUTTER")
             info_reasons.append(f"estimated wow & flutter {wf:.2f}% (proxy measurement — improving in future version)")
+        hum_db = vinyl.get("hum_db")
         if hum:
-            flags.append("HUM")
-            verdict_reasons.append(f"{hum:.0f}Hz hum detected — power line interference during rip")
+            if hum_db and hum_db > VINYL_HUM_STRONG_DB:
+                flags.append("HUM")
+                verdict_reasons.append(
+                    f"{hum:.0f}Hz hum at {hum_db:.0f}dB above floor — audible at club volume"
+                )
+            else:
+                db_str = f" ({hum_db:.0f}dB above floor)" if hum_db else ""
+                info_reasons.append(
+                    f"{hum:.0f}Hz hum detected{db_str} — mild, likely inaudible at club volume"
+                )
         if grade == "POOR":
             info_reasons.append("vinyl rip condition: poor — multiple quality issues")
 

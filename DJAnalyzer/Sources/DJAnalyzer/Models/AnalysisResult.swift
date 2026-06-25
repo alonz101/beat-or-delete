@@ -71,12 +71,14 @@ struct VinylInfo: Codable {
     let vinylRip: Bool
     let wowFlutterWrms: Double?
     let humHz: Double?
+    let humDb: Double?
     let vinylGrade: String?
 
     enum CodingKeys: String, CodingKey {
         case vinylRip = "vinyl_rip"
         case wowFlutterWrms = "wow_flutter_wrms"
         case humHz = "hum_hz"
+        case humDb = "hum_db"
         case vinylGrade = "vinyl_grade"
     }
 }
