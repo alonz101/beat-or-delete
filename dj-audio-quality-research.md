@@ -250,8 +250,7 @@ def check_fake_24bit(path):
 
 ### Tier 2 — Playability Verdict
 - **CLUB READY**: passes all thresholds (DR, peak, no clipping, genuine format)
-- **CASUAL OK**: acceptable for home/casual listening, not ideal for club
-- **MARGINAL**: technically playable but noticeable issues at volume
+- **REVIEW**: something worth a listen before the set — noticeable issues at volume
 - **DO NOT PLAY**: clipping, severe compression, major artifacts, or clearly fake/degraded
 
 ### Confidence Flags

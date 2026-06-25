@@ -1,9 +1,9 @@
 import SwiftUI
 
 enum QueueFilter: String, CaseIterable {
-    case all = "All"
+    case all       = "All"
     case doNotPlay = "Do Not Play"
-    case marginalPlus = "Marginal+"
+    case review    = "Review"
     case clubReady = "Club Ready"
 }
 
@@ -19,11 +19,9 @@ struct FileQueueView: View {
                 if case .done(let r) = $0.state { return r.verdict == .doNotPlay }
                 return false
             }
-        case .marginalPlus:
+        case .review:
             return items.filter {
-                if case .done(let r) = $0.state {
-                    return r.verdict == .doNotPlay || r.verdict == .marginal
-                }
+                if case .done(let r) = $0.state { return r.verdict == .review }
                 return false
             }
         case .clubReady:

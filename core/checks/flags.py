@@ -1,6 +1,8 @@
 from core.config import (
     BITRATE_320_THRESHOLD,
     BITRATE_192_THRESHOLD,
+    SPECTRAL_MP3_192_CUTOFF_HZ,
+    SPECTRAL_MP3_320_CUTOFF_HZ,
     LSB_ZERO_RATIO_FAKE_24BIT,
     CLIP_BLOCKING_EVENTS,
     CLIP_MARGINAL_EVENTS,
@@ -37,20 +39,19 @@ def compute_flags(
     bitrate = meta["bitrate"]
 
     if is_lossy:
-        if sv in ("FAKE_LOSSLESS", "SUSPECT"):
-            if bitrate >= BITRATE_320_THRESHOLD:
-                flags.append("FAKE_320")
-                verdict_reasons.append(
-                    f"declared 320kbps but spectral ceiling at {spectral['top_freq_hz']:.0f}Hz "
-                    f"— actual quality matches {spectral['suspected_origin']}"
-                )
-            elif bitrate >= BITRATE_192_THRESHOLD:
-                flags.append("LOW_QUALITY_MP3")
-                verdict_reasons.append(
-                    f"spectral ceiling at {spectral['top_freq_hz']:.0f}Hz "
-                    f"({spectral['coverage_ratio']*100:.1f}% of Nyquist) — "
-                    f"quality below declared bitrate"
-                )
+        top_freq = spectral["top_freq_hz"]
+        if top_freq < SPECTRAL_MP3_192_CUTOFF_HZ:
+            flags.append("LOW_QUALITY_MP3")
+            verdict_reasons.append(
+                f"spectral ceiling at {top_freq:.0f}Hz — "
+                f"audio quality ≤192kbps, not suitable for club use"
+            )
+        elif top_freq < SPECTRAL_MP3_320_CUTOFF_HZ and bitrate >= BITRATE_320_THRESHOLD:
+            flags.append("FAKE_320")
+            verdict_reasons.append(
+                f"declared 320kbps but spectral ceiling at {top_freq:.0f}Hz — "
+                f"actual quality ~256kbps"
+            )
     else:
         if sv == "FAKE_LOSSLESS":
             flags.append("FAKE_LOSSLESS")

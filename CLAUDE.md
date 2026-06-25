@@ -81,8 +81,7 @@ bash build/build_app.sh
 | Verdict | Meaning |
 |---|---|
 | CLUB READY | Passes all thresholds |
-| CASUAL OK | No blocking/marginal flags but loudness outside club range |
-| MARGINAL | Noticeable issues at club volume |
+| REVIEW | Something worth a listen before the set |
 | DO NOT PLAY | Blocking issue detected |
 
 ## Classification Rules
@@ -91,32 +90,29 @@ bash build/build_app.sh
 | Flag | Condition |
 |---|---|
 | `FAKE_LOSSLESS` | Lossless container but spectral coverage < 85% of Nyquist |
-| `FAKE_320` | Declared 320kbps MP3 but spectral ceiling matches ≤192kbps |
-| `CLIPPING` | > 10 clipped samples across both channels |
+| `LOW_QUALITY_MP3` | Any lossy file with spectral ceiling < 19kHz (≤192kbps quality) |
+| `CLIPPING` | > 20 clip events or longest > 100ms |
 | `OVER_COMPRESSED` | Dynamic range < 4 dB |
 
-### Marginal → MARGINAL
+### Review → REVIEW
 | Flag | Condition |
 |---|---|
+| `FAKE_320` | Declares 320kbps but spectral ceiling in 256kbps range (19–20.5kHz) |
 | `SUSPECT_LOSSLESS` | Spectral coverage 85–92% of Nyquist |
-| `LOW_QUALITY_MP3` | Spectral below declared bitrate (non-320) |
-| `UPSAMPLED` | Lossless container with suspect spectral |
 | `LAME_CONFIRMED` | LAME header in lossless container |
-| `FAKE_24BIT` | Declared 24-bit but LSB zero ratio > 95% |
-| `MINOR_CLIPPING` | 4–10 clipped samples |
+| `MINOR_CLIPPING` | 3–20 clip events |
 | `LOW_DYNAMIC_RANGE` | Dynamic range 4–6 dB |
 | `HIGH_NOISE_FLOOR` | Noise floor > -45 dBFS |
-| `VINYL_RIP` | Detected as vinyl rip |
-| `WOW_FLUTTER` | Wow & flutter > 0.15% WRMS (vinyl only) |
 | `HUM` | 50/60Hz hum spike (vinyl only) |
 
 ### Informational (no verdict impact)
 | Flag | Condition |
 |---|---|
+| `FAKE_24BIT` | Declared 24-bit but LSB zero ratio > 95% |
+| `WOW_FLUTTER` | Wow & flutter > 0.15% (vinyl only) |
 | `PEAK_HOT` | Sample peak > -0.03 dBFS |
-
-### CASUAL OK
-No blocking/marginal flags but: loudness < -18 LUFS or > -6 LUFS.
+| `LOUDNESS_LOW` | Loudness < -18 LUFS |
+| `LOUDNESS_HOT` | Loudness > -6 LUFS |
 
 ## Key Thresholds
 
@@ -124,13 +120,13 @@ No blocking/marginal flags but: loudness < -18 LUFS or > -6 LUFS.
 |---|---|
 | Spectral: FAKE_LOSSLESS | < 85% of Nyquist |
 | Spectral: SUSPECT_LOSSLESS | 85–92% of Nyquist |
-| Clipping: blocking | > 10 samples |
-| Clipping: marginal | 4–10 samples |
+| Clipping: blocking | > 20 events or longest > 100ms |
+| Clipping: review | 3–20 events |
 | Dynamic range: blocking | < 4 dB |
-| Dynamic range: marginal | 4–6 dB |
+| Dynamic range: review | 4–6 dB |
 | Loudness: CLUB READY range | -18 to -6 LUFS |
-| Noise floor: marginal | > -45 dBFS |
-| Wow & flutter: marginal | > 0.15% WRMS |
+| Noise floor: review | > -45 dBFS |
+| Wow & flutter: informational | > 0.15% |
 
 ## Vinyl Rip Detection
 

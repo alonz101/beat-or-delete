@@ -1,10 +1,9 @@
 from core.checks.flags import compute_flags
 
-BLOCKING = {"FAKE_LOSSLESS", "FAKE_320", "CLIPPING", "OVER_COMPRESSED"}
-MARGINAL = {
-    "SUSPECT_LOSSLESS", "LOW_QUALITY_MP3", "MINOR_CLIPPING",
-    "LOW_DYNAMIC_RANGE", "HIGH_NOISE_FLOOR", "LAME_CONFIRMED",
-    "HUM",
+BLOCKING = {"FAKE_LOSSLESS", "CLIPPING", "OVER_COMPRESSED", "LOW_QUALITY_MP3"}
+REVIEW = {
+    "FAKE_320", "SUSPECT_LOSSLESS", "MINOR_CLIPPING",
+    "LOW_DYNAMIC_RANGE", "HIGH_NOISE_FLOOR", "LAME_CONFIRMED", "HUM",
 }
 
 
@@ -20,8 +19,8 @@ def compute_verdict(
 
     if flag_set & BLOCKING:
         verdict = "DO NOT PLAY"
-    elif flag_set & MARGINAL:
-        verdict = "MARGINAL"
+    elif flag_set & REVIEW:
+        verdict = "REVIEW"
     else:
         verdict = "CLUB READY"
 

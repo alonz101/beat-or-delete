@@ -84,28 +84,22 @@ The Swift app auto-discovers the correct Python by walking `~/.pyenv/versions/` 
 | Verdict | Meaning |
 |---|---|
 | CLUB READY | Passes all thresholds |
-| CASUAL OK | Fine for home listening, minor issues (e.g. low loudness) |
-| MARGINAL | Noticeable issues at club volume |
+| REVIEW | Something worth a listen before the set |
 | DO NOT PLAY | Blocking issue detected |
 
 ### Blocking Flags (→ DO NOT PLAY)
 - `FAKE_LOSSLESS` — lossless container (FLAC/WAV/AIFF) with lossy spectral signature
-- `FAKE_320` — declared 320kbps MP3 but spectral ceiling matches 192kbps or lower
-- `CLIPPING` — >10 clipped samples
+- `LOW_QUALITY_MP3` — any lossy file with spectral ceiling <19kHz (≤192kbps quality)
+- `CLIPPING` — >20 clip events or longest >100ms
 - `OVER_COMPRESSED` — dynamic range <4dB
 
-### Marginal Flags (→ MARGINAL)
+### Review Flags (→ REVIEW)
+- `FAKE_320` — declares 320kbps but spectral ceiling in 256kbps range (19–20.5kHz)
 - `SUSPECT_LOSSLESS` — spectral coverage 85–92% of Nyquist
-- `LOW_QUALITY_MP3` — spectral below declared bitrate (non-320)
-- `UPSAMPLED` — lossless container, suspect spectral
 - `LAME_CONFIRMED` — LAME header found in lossless container
-- `FAKE_24BIT` — declared 24-bit but LSBs all zero
-- `MINOR_CLIPPING` — 1–10 clipped samples
+- `MINOR_CLIPPING` — 3–20 clip events
 - `LOW_DYNAMIC_RANGE` — DR 4–6dB
 - `HIGH_NOISE_FLOOR` — noise floor above -45dBFS
-- `TRUE_PEAK_HOT` — true peak near 0dBFS
-- `VINYL_RIP` — detected as vinyl rip
-- `WOW_FLUTTER` — pitch instability detected
 - `HUM` — 50/60Hz hum spike
 
 ### Key Detection Methods

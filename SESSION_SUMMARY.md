@@ -51,8 +51,7 @@ The build script:
 | Verdict | Meaning |
 |---|---|
 | **CLUB READY** | Passes all thresholds |
-| **CASUAL OK** | Fine for home listening, loudness outside club range |
-| **MARGINAL** | Noticeable issues at club volume |
+| **REVIEW** | Something worth a listen before the set |
 | **DO NOT PLAY** | Blocking issue detected |
 
 ---
@@ -63,34 +62,29 @@ The build script:
 | Flag | Condition |
 |---|---|
 | `FAKE_LOSSLESS` | Lossless container (FLAC/WAV/AIFF) but spectral coverage < 85% of Nyquist |
-| `FAKE_320` | Declared 320kbps MP3 but spectral ceiling matches 192kbps or lower |
-| `CLIPPING` | > 10 total clipped samples across both channels |
+| `LOW_QUALITY_MP3` | Any lossy file with spectral ceiling < 19kHz (≤192kbps quality) |
+| `CLIPPING` | > 20 clip events or longest > 100ms |
 | `OVER_COMPRESSED` | Dynamic range < 4 dB |
 
-### Marginal Flags → MARGINAL
+### Review Flags → REVIEW
 | Flag | Condition |
 |---|---|
+| `FAKE_320` | Declares 320kbps but spectral ceiling in 256kbps range (19–20.5kHz) |
 | `SUSPECT_LOSSLESS` | Spectral coverage 85–92% of Nyquist |
-| `LOW_QUALITY_MP3` | Spectral below declared bitrate (non-320) |
-| `UPSAMPLED` | Lossless container with suspect spectral |
 | `LAME_CONFIRMED` | LAME header found in lossless container |
-| `FAKE_24BIT` | Declared 24-bit but LSB zero ratio > 95% |
-| `MINOR_CLIPPING` | 4–10 total clipped samples |
+| `MINOR_CLIPPING` | 3–20 clip events |
 | `LOW_DYNAMIC_RANGE` | Dynamic range 4–6 dB |
 | `HIGH_NOISE_FLOOR` | Noise floor > -45 dBFS |
-| `VINYL_RIP` | Detected as vinyl rip (see vinyl rules below) |
-| `WOW_FLUTTER` | Wow & flutter > 0.15% WRMS (only when vinyl confirmed) |
 | `HUM` | 50/60Hz hum spike detected (only when vinyl confirmed) |
 
 ### Informational Flags (shown but don't affect verdict)
 | Flag | Condition |
 |---|---|
-| `PEAK_HOT` | Sample peak > -0.03 dBFS — headroom is gone (normal for commercial masters) |
-
-### CASUAL OK Condition
-Triggered when no blocking/marginal flags exist but loudness is outside club range:
-- Loudness < -18 LUFS → too quiet, may need gain adjustment
-- Loudness > -6 LUFS → dangerously hot
+| `FAKE_24BIT` | Declared 24-bit but LSB zero ratio > 95% |
+| `WOW_FLUTTER` | Wow & flutter > 0.15% (vinyl only) |
+| `PEAK_HOT` | Sample peak > -0.03 dBFS |
+| `LOUDNESS_LOW` | Loudness < -18 LUFS |
+| `LOUDNESS_HOT` | Loudness > -6 LUFS |
 
 ---
 

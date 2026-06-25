@@ -55,8 +55,8 @@ def run_batch(input_path: str, output_stem: str | None = None) -> dict:
             flags = " ".join(result.get("flags", []))
             print(f"  [{i}/{len(files)}] {f.name} → {verdict} {flags}", file=sys.stderr)
 
-    # Sort: DO NOT PLAY first, then MARGINAL, CASUAL OK, CLUB READY
-    order = {"DO NOT PLAY": 0, "MARGINAL": 1, "CASUAL OK": 2, "CLUB READY": 3, "ERROR": 4}
+    # Sort: DO NOT PLAY first, then REVIEW, CLUB READY
+    order = {"DO NOT PLAY": 0, "REVIEW": 1, "CLUB READY": 2, "ERROR": 3}
     results.sort(key=lambda r: order.get(r.get("verdict", "ERROR"), 9))
 
     # Determine output stem

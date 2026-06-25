@@ -9,10 +9,9 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
 VERDICT_COLORS = {
-    "CLUB READY":   colors.HexColor("#1a7a3e"),
-    "CASUAL OK":    colors.HexColor("#2a7a6e"),
-    "MARGINAL":     colors.HexColor("#c97a00"),
-    "DO NOT PLAY":  colors.HexColor("#b52b2b"),
+    "CLUB READY":  colors.HexColor("#1a7a3e"),
+    "REVIEW":      colors.HexColor("#c97a00"),
+    "DO NOT PLAY": colors.HexColor("#b52b2b"),
 }
 
 FLAG_COLOR = colors.HexColor("#555555")
@@ -42,7 +41,7 @@ def write_pdf(results: list[dict], output_path: str) -> str:
     # --- Title ---
     story.append(Paragraph("DJ Audio Quality Report", title_style))
     total = len(results)
-    ok = sum(1 for r in results if r.get("verdict") in ("CLUB READY", "CASUAL OK"))
+    ok = sum(1 for r in results if r.get("verdict") == "CLUB READY")
     bad = sum(1 for r in results if r.get("verdict") == "DO NOT PLAY")
     story.append(Paragraph(
         f"{total} files analyzed — {ok} playable, {bad} DO NOT PLAY",
