@@ -2,14 +2,12 @@ import SwiftUI
 
 enum Verdict: String, Codable, CaseIterable {
     case clubReady  = "CLUB READY"
-    case casualOK   = "CASUAL OK"
     case marginal   = "MARGINAL"
     case doNotPlay  = "DO NOT PLAY"
 
     var color: Color {
         switch self {
         case .clubReady:  return Color(hex: "1a7a3e")
-        case .casualOK:   return Color(hex: "2a7a6e")
         case .marginal:   return Color(hex: "c97a00")
         case .doNotPlay:  return Color(hex: "b52b2b")
         }

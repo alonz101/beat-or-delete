@@ -4,7 +4,6 @@ enum QueueFilter: String, CaseIterable {
     case all = "All"
     case doNotPlay = "Do Not Play"
     case marginalPlus = "Marginal+"
-    case casualOK = "Casual OK"
     case clubReady = "Club Ready"
 }
 
@@ -25,11 +24,6 @@ struct FileQueueView: View {
                 if case .done(let r) = $0.state {
                     return r.verdict == .doNotPlay || r.verdict == .marginal
                 }
-                return false
-            }
-        case .casualOK:
-            return items.filter {
-                if case .done(let r) = $0.state { return r.verdict == .casualOK }
                 return false
             }
         case .clubReady:
