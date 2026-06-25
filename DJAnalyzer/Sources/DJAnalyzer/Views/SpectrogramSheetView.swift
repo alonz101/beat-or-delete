@@ -63,6 +63,9 @@ struct SpectrogramSheetView: View {
 // MARK: - Window opener
 
 enum SpectrogramWindow {
+    // Strong references — prevents ARC from releasing windows while animations are in flight
+    private static var openWindows: [ObjectIdentifier: NSWindow] = [:]
+
     static func open(result: AnalysisResult) {
         let view = SpectrogramSheetView(result: result)
         let controller = NSHostingController(rootView: view)
@@ -71,8 +74,20 @@ enum SpectrogramWindow {
         window.setContentSize(NSSize(width: 960, height: 420))
         window.minSize = NSSize(width: 600, height: 280)
         window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
-        window.isReleasedWhenClosed = true
+        window.isReleasedWhenClosed = false  // ARC manages lifetime via openWindows
         window.collectionBehavior = [.fullScreenPrimary]
+
+        let key = ObjectIdentifier(window)
+        openWindows[key] = window
+
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { _ in
+            openWindows.removeValue(forKey: key)
+        }
+
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
