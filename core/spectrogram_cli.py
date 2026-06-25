@@ -16,6 +16,7 @@ from core.spectrogram import generate_full
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate full-size annotated spectrogram")
     parser.add_argument("path", help="Audio file path")
+    parser.add_argument("--duration", type=float, default=600.0, help="Max duration to render in seconds (default: 600)")
     parser.add_argument("--hum-hz", type=float, default=None, help="Hum frequency to annotate (50 or 60)")
     parser.add_argument("--clip-times", type=str, default=None, help="Comma-separated clip timestamps in seconds")
     args = parser.parse_args()
@@ -25,7 +26,7 @@ def main() -> None:
         if args.clip_times else []
     )
 
-    path = generate_full(args.path, hum_hz=args.hum_hz, clip_times_sec=clip_times)
+    path = generate_full(args.path, duration=args.duration, hum_hz=args.hum_hz, clip_times_sec=clip_times)
     print(json.dumps({"spectrogram_path": path}))
 
 

@@ -13,8 +13,9 @@ def _render(
     fig_size: tuple[float, float],
     y_axis: str = "hz",
     show_xaxis: bool = False,
-) -> tuple[plt.Figure, plt.Axes, int]:
+) -> tuple[plt.Figure, plt.Axes, int, float]:
     y, sr = librosa.load(path, sr=None, mono=True, duration=duration)
+    actual_duration = len(y) / sr
 
     fig, ax = plt.subplots(figsize=fig_size, dpi=100)
     fig.patch.set_facecolor("#1a1a1a")
@@ -44,11 +45,12 @@ def _render(
         ax.spines["bottom"].set_linewidth(0.8)
         ax.spines["bottom"].set_visible(True)
         ax.xaxis.label.set_color("#aaaaaa")
+        ax.set_xlim(0, actual_duration)
     else:
         ax.xaxis.set_visible(False)
         ax.spines["bottom"].set_visible(False)
 
-    return fig, ax, sr
+    return fig, ax, sr, actual_duration
 
 
 def _save(fig: plt.Figure) -> str:
@@ -59,18 +61,18 @@ def _save(fig: plt.Figure) -> str:
 
 
 def generate_thumbnail(path: str, duration: float = 30.0) -> str:
-    fig, ax, sr = _render(path, duration, (6, 1.8), y_axis="hz", show_xaxis=False)
+    fig, ax, sr, _ = _render(path, duration, (6, 1.8), y_axis="hz", show_xaxis=False)
     plt.tight_layout(pad=0.2)
     return _save(fig)
 
 
 def generate_full(
     path: str,
-    duration: float = 60.0,
+    duration: float = 600.0,
     hum_hz: float | None = None,
     clip_times_sec: list[float] | None = None,
 ) -> str:
-    fig, ax, sr = _render(path, duration, (14, 4), y_axis="log", show_xaxis=True)
+    fig, ax, sr, actual_dur = _render(path, duration, (14, 4), y_axis="log", show_xaxis=True)
 
     if hum_hz:
         ax.axhspan(hum_hz - 3, hum_hz + 3, alpha=0.25, color="#ff4444", linewidth=0)
@@ -83,8 +85,10 @@ def generate_full(
             va="bottom",
         )
 
+    # Only draw clip markers within the rendered audio window
     for t in (clip_times_sec or []):
-        ax.axvline(t, color="#ff6666", alpha=0.65, linewidth=1.0, linestyle="--")
+        if t <= actual_dur:
+            ax.axvline(t, color="#ff6666", alpha=0.65, linewidth=1.0, linestyle="--")
 
     plt.tight_layout(pad=0.3)
     return _save(fig)

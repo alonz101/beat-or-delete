@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ReportCardView: View {
     let result: AnalysisResult
-    @State private var showSpectrogram = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -108,7 +107,7 @@ struct ReportCardView: View {
                     HStack {
                         Spacer()
                         Button {
-                            showSpectrogram = true
+                            SpectrogramWindow.open(result: result)
                         } label: {
                             Label("Full Spectrogram", systemImage: "waveform.circle")
                                 .font(.system(size: 10, weight: .medium))
@@ -116,9 +115,6 @@ struct ReportCardView: View {
                         .buttonStyle(.plain)
                         .foregroundColor(.accentColor)
                     }
-                }
-                .sheet(isPresented: $showSpectrogram) {
-                    SpectrogramSheetView(result: result)
                 }
             }
 

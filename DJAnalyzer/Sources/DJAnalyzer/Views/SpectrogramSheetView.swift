@@ -1,4 +1,7 @@
 import SwiftUI
+import AppKit
+
+// MARK: - Window content view
 
 struct SpectrogramSheetView: View {
     let result: AnalysisResult
@@ -6,42 +9,8 @@ struct SpectrogramSheetView: View {
     @State private var imagePath: String? = nil
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            body_content
-        }
-        .frame(minWidth: 860, minHeight: 360)
-        .background(Color(NSColor.windowBackgroundColor))
-        .task { await load() }
-    }
-
-    private var header: some View {
-        HStack {
-            Image(systemName: "waveform")
-                .foregroundColor(.secondary)
-                .font(.system(size: 12))
-            Text(result.filename)
-                .font(.system(size: 13, weight: .semibold))
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer()
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-
-    @ViewBuilder
-    private var body_content: some View {
         ZStack {
             Color(NSColor.windowBackgroundColor)
             if isLoading {
@@ -54,12 +23,11 @@ struct SpectrogramSheetView: View {
                         .foregroundColor(.secondary)
                 }
             } else if let path = imagePath, let img = NSImage(contentsOfFile: path) {
-                ScrollView([.horizontal, .vertical]) {
-                    Image(nsImage: img)
-                        .resizable()
-                        .scaledToFit()
-                        .padding(16)
-                }
+                Image(nsImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(8)
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
@@ -73,6 +41,7 @@ struct SpectrogramSheetView: View {
                 .padding()
             }
         }
+        .task { await load() }
     }
 
     private func load() async {
@@ -81,11 +50,30 @@ struct SpectrogramSheetView: View {
         do {
             imagePath = try await SpectrogramService.generateFull(
                 filePath: result.filePath ?? result.filename,
+                duration: result.format.duration,
                 humHz: result.vinyl?.humHz,
                 clipTimes: result.clipTimesSec
             )
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+// MARK: - Window opener
+
+enum SpectrogramWindow {
+    static func open(result: AnalysisResult) {
+        let view = SpectrogramSheetView(result: result)
+        let controller = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: controller)
+        window.title = result.filename
+        window.setContentSize(NSSize(width: 960, height: 420))
+        window.minSize = NSSize(width: 600, height: 280)
+        window.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        window.isReleasedWhenClosed = true
+        window.collectionBehavior = [.fullScreenPrimary]
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

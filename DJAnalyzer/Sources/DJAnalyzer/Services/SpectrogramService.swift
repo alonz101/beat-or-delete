@@ -27,10 +27,11 @@ enum SpectrogramService {
 
     static func generateFull(
         filePath: String,
+        duration: Double,
         humHz: Double?,
         clipTimes: [Double]
     ) async throws -> String {
-        var args = [filePath]
+        var args = [filePath, "--duration", String(min(duration, 600.0))]
         if let hum = humHz {
             args += ["--hum-hz", String(hum)]
         }
