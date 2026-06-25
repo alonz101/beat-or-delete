@@ -36,9 +36,9 @@ LUFS_CLUB_MAX = -6.0
 # --- Vinyl ---
 VINYL_NOISE_GATE_DBFS = -58.0          # hard gate: file must have noise > this
 VINYL_ELEVATED_NOISE_DBFS = -55.0      # scoring: noise > this → +2
-VINYL_MIN_SCORE = 3                    # score must reach this to confirm vinyl rip
+VINYL_MIN_SCORE = 4                    # score must reach this to confirm vinyl rip
 VINYL_CLICK_MANY = 3                   # clicks >= this → +2 score
-VINYL_CLICK_FEW = 1                    # clicks >= this → +1 score
+VINYL_CLICK_FEW = 2                    # clicks >= this → +1 score
 VINYL_HUM_SCORE = 3                    # hum detected → +this score
 VINYL_WOW_FLUTTER_FLAG = 0.15          # > this → WOW_FLUTTER flag (display only)
 VINYL_HUM_STRONG_DB = 25.0             # hum spike > this dB above local floor → HUM flag (REVIEW)
