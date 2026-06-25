@@ -92,6 +92,7 @@ struct AnalysisResult: Codable, Identifiable {
     let playability: Playability
     let vinyl: VinylInfo?
     let clickCount: Int
+    let clipTimesSec: [Double]
     let flags: [String]
     let verdict: Verdict
     let verdictReasons: [String]
@@ -102,6 +103,7 @@ struct AnalysisResult: Codable, Identifiable {
         case filename, format, authenticity, playability, vinyl, flags, verdict
         case filePath = "file_path"
         case clickCount = "click_count"
+        case clipTimesSec = "clip_times_sec"
         case verdictReasons = "verdict_reasons"
         case infoReasons = "info_reasons"
         case spectrogramPath = "spectrogram_path"

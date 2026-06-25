@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ReportCardView: View {
     let result: AnalysisResult
+    @State private var showSpectrogram = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -98,11 +99,27 @@ struct ReportCardView: View {
             // Spectrogram
             if let specPath = result.spectrogramPath,
                let img = NSImage(contentsOfFile: specPath) {
-                Image(nsImage: img)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: 100)
-                    .cornerRadius(4)
+                VStack(spacing: 6) {
+                    Image(nsImage: img)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: 100)
+                        .cornerRadius(4)
+                    HStack {
+                        Spacer()
+                        Button {
+                            showSpectrogram = true
+                        } label: {
+                            Label("Full Spectrogram", systemImage: "waveform.circle")
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.accentColor)
+                    }
+                }
+                .sheet(isPresented: $showSpectrogram) {
+                    SpectrogramSheetView(result: result)
+                }
             }
 
             // Flags

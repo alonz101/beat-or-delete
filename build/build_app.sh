@@ -13,10 +13,12 @@ PYINSTALLER="$HOME/.pyenv/versions/3.11.9/bin/pyinstaller"
 
 echo "==> Phase 1: Freeze Python executables"
 cd "$REPO_ROOT"
-"$PYINSTALLER" build/analyzer.spec --distpath "$DIST_DIR" --workpath "$BUILD_DIR/work" --noconfirm --log-level WARN
-"$PYINSTALLER" build/batch.spec    --distpath "$DIST_DIR" --workpath "$BUILD_DIR/work" --noconfirm --log-level WARN
-echo "    dj-analyze: $(du -sh "$DIST_DIR/dj-analyze" | cut -f1)"
-echo "    dj-batch:   $(du -sh "$DIST_DIR/dj-batch" | cut -f1)"
+"$PYINSTALLER" build/analyzer.spec     --distpath "$DIST_DIR" --workpath "$BUILD_DIR/work" --noconfirm --log-level WARN
+"$PYINSTALLER" build/batch.spec        --distpath "$DIST_DIR" --workpath "$BUILD_DIR/work" --noconfirm --log-level WARN
+"$PYINSTALLER" build/spectrogram.spec  --distpath "$DIST_DIR" --workpath "$BUILD_DIR/work" --noconfirm --log-level WARN
+echo "    dj-analyze:     $(du -sh "$DIST_DIR/dj-analyze" | cut -f1)"
+echo "    dj-batch:       $(du -sh "$DIST_DIR/dj-batch" | cut -f1)"
+echo "    dj-spectrogram: $(du -sh "$DIST_DIR/dj-spectrogram" | cut -f1)"
 
 echo "==> Phase 2: Build Swift binary"
 cd "$REPO_ROOT/DJAnalyzer"
@@ -43,8 +45,9 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 cp "$BUILD_DIR/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 
 # Frozen Python executable bundles (onedir mode — no extraction delay at runtime)
-cp -R "$DIST_DIR/dj-analyze" "$APP_BUNDLE/Contents/Resources/dj-analyze"
-cp -R "$DIST_DIR/dj-batch"   "$APP_BUNDLE/Contents/Resources/dj-batch"
+cp -R "$DIST_DIR/dj-analyze"     "$APP_BUNDLE/Contents/Resources/dj-analyze"
+cp -R "$DIST_DIR/dj-batch"       "$APP_BUNDLE/Contents/Resources/dj-batch"
+cp -R "$DIST_DIR/dj-spectrogram" "$APP_BUNDLE/Contents/Resources/dj-spectrogram"
 
 echo "==> Done: $APP_BUNDLE"
 echo ""

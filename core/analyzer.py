@@ -71,6 +71,7 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
         },
         "vinyl": vinyl,
         "click_count": click_count,
+        "clip_times_sec": integrity["clip_times_sec"],
         "flags": verdict["flags"],
         "verdict": verdict["verdict"],
         "verdict_reasons": verdict["reasons"],
