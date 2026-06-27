@@ -75,11 +75,13 @@ def generate_full(
     fig, ax, sr, actual_dur = _render(path, duration, (14, 4), y_axis="log", show_xaxis=True)
 
     if hum_hz:
-        # Label on the Y axis margin only — nothing drawn on the spectrogram itself
+        # Short pointer at left edge only (2% width) — doesn't cover content
+        ax.axhline(hum_hz, xmin=0, xmax=0.02, color="#44ccff", linewidth=1.5)
+        # Label in the Y axis margin
         ax.text(
             -0.04, hum_hz,
             f"► {hum_hz:.0f}Hz",
-            transform=ax.get_yaxis_transform(),  # x in axes fraction, y in data (Hz)
+            transform=ax.get_yaxis_transform(),
             color="#44ccff",
             fontsize=7,
             fontweight="bold",
