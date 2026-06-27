@@ -75,17 +75,19 @@ def generate_full(
     fig, ax, sr, actual_dur = _render(path, duration, (14, 4), y_axis="log", show_xaxis=True)
 
     if hum_hz:
-        ax.axhspan(hum_hz - 3, hum_hz + 3, alpha=0.25, color="#ff4444", linewidth=0)
+        # Label on the Y axis margin only — nothing drawn on the spectrogram itself
         ax.text(
-            0.01, hum_hz * 1.15,
-            f"{hum_hz:.0f}Hz hum",
-            transform=ax.get_yaxis_transform(),
-            color="#ff8888",
+            -0.04, hum_hz,
+            f"► {hum_hz:.0f}Hz",
+            transform=ax.get_yaxis_transform(),  # x in axes fraction, y in data (Hz)
+            color="#44ccff",
             fontsize=7,
-            va="bottom",
+            fontweight="bold",
+            ha="right",
+            va="center",
         )
 
-    # Only draw clip markers within the rendered audio window
+    # Clip markers within the rendered audio window
     for t in (clip_times_sec or []):
         if t <= actual_dur:
             ax.axvline(t, color="#ff6666", alpha=0.65, linewidth=1.0, linestyle="--")

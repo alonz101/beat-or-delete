@@ -9,6 +9,8 @@ struct SpectrogramSheetView: View {
     @State private var imagePath: String? = nil
     @State private var isLoading = true
     @State private var errorMessage: String? = nil
+    @State private var scale: CGFloat = 1.0
+    @State private var baseScale: CGFloat = 1.0
 
     var body: some View {
         ZStack {
@@ -23,11 +25,26 @@ struct SpectrogramSheetView: View {
                         .foregroundColor(.secondary)
                 }
             } else if let path = imagePath, let img = NSImage(contentsOfFile: path) {
-                Image(nsImage: img)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding(8)
+                GeometryReader { geo in
+                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                        Image(nsImage: img)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(
+                                width: geo.size.width * max(1, scale),
+                                height: geo.size.height * max(1, scale)
+                            )
+                    }
+                }
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in scale = max(1.0, baseScale * value) }
+                        .onEnded { _ in baseScale = scale }
+                )
+                .onTapGesture(count: 2) {
+                    withAnimation(.easeOut(duration: 0.2)) { scale = 1.0; baseScale = 1.0 }
+                }
+                .padding(8)
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
