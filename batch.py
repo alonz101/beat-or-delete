@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core.analyzer import analyze
+from core.cache import get_or_analyze
 from core.export.csv_writer import write_csv
 from core.export.pdf_writer import write_pdf
 from core.utils import numpy_to_native
@@ -43,7 +43,7 @@ def run_batch(input_path: str, output_stem: str | None = None) -> dict:
 
     results = []
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
-        futures = {pool.submit(analyze, str(f)): f for f in files}
+        futures = {pool.submit(get_or_analyze, str(f)): f for f in files}
         for i, future in enumerate(as_completed(futures), 1):
             f = futures[future]
             try:

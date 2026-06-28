@@ -18,12 +18,18 @@ from core.spectrogram import generate_spectrogram
 from core.utils import numpy_to_native
 
 
-def analyze(path: str, with_spectrogram: bool = False) -> dict:
+def analyze_raw(path: str) -> tuple[dict, dict]:
+    """Run all checks and return (raw_components, assembled_result).
+
+    raw_components shape matches what core.cache stores in raw_json:
+      {meta, spectral, integrity, loudness, vinyl, click_count, clip_times_sec}
+    assembled_result is the full public dict (same shape as analyze()).
+    """
     p = Path(path)
     if not p.exists():
-        return {"error": f"File not found: {path}"}
+        assembled = {"error": f"File not found: {path}"}
+        return {}, assembled
 
-    # Load audio once — all float32 checks share this
     data, sr = sf.read(str(p), dtype="float32")
 
     meta = get_metadata(path)
@@ -32,10 +38,19 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
     loudness = check_loudness(data, sr)
     click_count = count_clicks(data, sr)
     vinyl = check_vinyl(data, sr, integrity["noise_floor_dbfs"], click_count)
-
     verdict = compute_verdict(meta, spectral, integrity, loudness, vinyl)
 
-    result = {
+    raw = {
+        "meta": meta,
+        "spectral": spectral,
+        "integrity": integrity,
+        "loudness": loudness,
+        "vinyl": vinyl,
+        "click_count": click_count,
+        "clip_times_sec": integrity["clip_times_sec"],
+    }
+
+    assembled = {
         "filename": p.name,
         "file_path": str(p.resolve()),
         "format": {
@@ -80,7 +95,13 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
         "spectrogram_path": None,
     }
 
-    if with_spectrogram:
+    return raw, assembled
+
+
+def analyze(path: str, with_spectrogram: bool = False) -> dict:
+    _, result = analyze_raw(path)
+
+    if with_spectrogram and "error" not in result:
         try:
             result["spectrogram_path"] = generate_spectrogram(path)
         except Exception:
@@ -90,10 +111,12 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
 
 
 if __name__ == "__main__":
+    import core.cache
+
     if len(sys.argv) < 2:
         print("Usage: python analyzer.py <audio_file> [--spectrogram]", file=sys.stderr)
         sys.exit(1)
 
     with_spec = "--spectrogram" in sys.argv
-    result = analyze(sys.argv[1], with_spectrogram=with_spec)
+    result = core.cache.get_or_analyze(sys.argv[1], with_spectrogram=with_spec)
     print(json.dumps(result, indent=2, default=numpy_to_native))
