@@ -33,19 +33,41 @@ actor AnalyzerService {
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 
+    /// Analyze via the long-lived `dj-analyze --serve` process (imports paid once).
+    /// `spectrogram: false` — thumbnails are rendered lazily by the card (T-7), so
+    /// a cache-hit file returns in ms with no PNG render.
     static func analyze(fileURL: URL) async throws -> AnalysisResult {
-        let output: String
-        if let bin = bundledAnalyze {
-            output = try await ProcessRunner.run(bin, args: [fileURL.path, "--spectrogram"])
-        } else {
+        await configurePersistent()
+        return try await PersistentAnalyzer.shared.request(path: fileURL.path, spectrogram: false)
+    }
+
+    /// Lazy-start the persistent process. Called on queue interaction (T-5) so the
+    /// import cost overlaps with the user reviewing the queue.
+    static func warm() async {
+        await configurePersistent()
+        await PersistentAnalyzer.shared.warm()
+    }
+
+    /// Tell the persistent process to exit cleanly (app termination, T-6).
+    static func shutdown() async {
+        await PersistentAnalyzer.shared.shutdown()
+    }
+
+    /// Inject the serve launch command into PersistentAnalyzer. Idempotent —
+    /// resolution (bundled binary vs python source) runs lazily at process start.
+    private static func configurePersistent() async {
+        await PersistentAnalyzer.shared.setLaunchProvider {
+            var env = ProcessInfo.processInfo.environment
+            env["PATH"] = (env["PATH"] ?? "") + ":/usr/local/bin:/opt/homebrew/bin"
+            if let bin = bundledAnalyze {
+                return (bin, ["--serve"], env)
+            }
             let python = try findPython()
             guard FileManager.default.fileExists(atPath: analyzerScript) else {
                 throw AnalyzerError.scriptNotFound
             }
-            output = try await ProcessRunner.run(python, args: [analyzerScript, fileURL.path, "--spectrogram"])
+            return (python, [analyzerScript, "--serve"], env)
         }
-
-        return try decode(output, for: fileURL.lastPathComponent)
     }
 
     static func runBatch(
@@ -118,17 +140,6 @@ actor AnalyzerService {
         if FileManager.default.fileExists(atPath: shim) { return shim }
 
         throw AnalyzerError.pythonNotFound
-    }
-
-    private static func decode(_ json: String, for filename: String) throws -> AnalysisResult {
-        guard let data = json.data(using: .utf8) else {
-            throw AnalyzerError.parseError("empty output for \(filename)")
-        }
-        do {
-            return try JSONDecoder().decode(AnalysisResult.self, from: data)
-        } catch {
-            throw AnalyzerError.parseError(error.localizedDescription)
-        }
     }
 
 }
