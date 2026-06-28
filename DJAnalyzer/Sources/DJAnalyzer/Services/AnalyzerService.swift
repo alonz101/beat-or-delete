@@ -33,41 +33,28 @@ actor AnalyzerService {
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 
-    /// Analyze via the long-lived `dj-analyze --serve` process (imports paid once).
-    /// `spectrogram: false` — thumbnails are rendered lazily by the card (T-7), so
-    /// a cache-hit file returns in ms with no PNG render.
+    // One fresh `dj-analyze` process per track. Each exits when done, so the OS
+    // reclaims all of its memory — nothing accumulates across a folder. The gate
+    // caps how many run at once so a large folder can't launch dozens of heavy
+    // processes simultaneously (each big track needs ~1.5–2GB). Cap 3 → ~5GB worst
+    // case. The sqlite cache is used inside the one-shot process (get_or_analyze).
+    private static let gate = AsyncSemaphore(limit: 3)
+
     static func analyze(fileURL: URL) async throws -> AnalysisResult {
-        await configurePersistent()
-        return try await PersistentAnalyzer.shared.request(path: fileURL.path, spectrogram: false)
-    }
+        await gate.acquire()
+        defer { Task { await gate.release() } }
 
-    /// Lazy-start the persistent process. Called on queue interaction (T-5) so the
-    /// import cost overlaps with the user reviewing the queue.
-    static func warm() async {
-        await configurePersistent()
-        await PersistentAnalyzer.shared.warm()
-    }
-
-    /// Tell the persistent process to exit cleanly (app termination, T-6).
-    static func shutdown() async {
-        await PersistentAnalyzer.shared.shutdown()
-    }
-
-    /// Inject the serve launch command into PersistentAnalyzer. Idempotent —
-    /// resolution (bundled binary vs python source) runs lazily at process start.
-    private static func configurePersistent() async {
-        await PersistentAnalyzer.shared.setLaunchProvider {
-            var env = ProcessInfo.processInfo.environment
-            env["PATH"] = (env["PATH"] ?? "") + ":/usr/local/bin:/opt/homebrew/bin"
-            if let bin = bundledAnalyze {
-                return (bin, ["--serve"], env)
-            }
+        let output: String
+        if let bin = bundledAnalyze {
+            output = try await ProcessRunner.run(bin, args: [fileURL.path])
+        } else {
             let python = try findPython()
             guard FileManager.default.fileExists(atPath: analyzerScript) else {
                 throw AnalyzerError.scriptNotFound
             }
-            return (python, [analyzerScript, "--serve"], env)
+            output = try await ProcessRunner.run(python, args: [analyzerScript, fileURL.path])
         }
+        return try decode(output, for: fileURL.lastPathComponent)
     }
 
     static func runBatch(
@@ -142,4 +129,42 @@ actor AnalyzerService {
         throw AnalyzerError.pythonNotFound
     }
 
+    private static func decode(_ json: String, for filename: String) throws -> AnalysisResult {
+        guard let data = json.data(using: .utf8) else {
+            throw AnalyzerError.parseError("empty output for \(filename)")
+        }
+        do {
+            return try JSONDecoder().decode(AnalysisResult.self, from: data)
+        } catch {
+            throw AnalyzerError.parseError(error.localizedDescription)
+        }
+    }
+
+}
+
+/// Minimal async counting semaphore — caps concurrent analyses without blocking
+/// threads (actor-isolated, suspends instead).
+actor AsyncSemaphore {
+    private let limit: Int
+    private var count = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(limit: Int) { self.limit = limit }
+
+    func acquire() async {
+        if count < limit {
+            count += 1
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            count -= 1
+        } else {
+            // Hand the permit straight to the next waiter (count stays at limit).
+            waiters.removeFirst().resume()
+        }
+    }
 }
