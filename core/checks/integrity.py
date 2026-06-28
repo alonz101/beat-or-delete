@@ -5,7 +5,8 @@ from core.config import CLIP_SAMPLE_THRESHOLD, CLIP_MIN_RUN
 
 
 def _clip_events(channel: np.ndarray, sr: int) -> tuple[int, float, list[float]]:
-    at_max = np.abs(channel) >= CLIP_SAMPLE_THRESHOLD
+    # Avoid a full-length np.abs copy; symmetric threshold → OR of the two bounds.
+    at_max = (channel >= CLIP_SAMPLE_THRESHOLD) | (channel <= -CLIP_SAMPLE_THRESHOLD)
     if not at_max.any():
         return 0, 0.0, []
     padded = np.concatenate([[False], at_max, [False]])
@@ -36,8 +37,8 @@ def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
     # Merge L+R clip times, deduplicate within 0.1s window, sort
     clip_times_sec = sorted(set(round(t, 1) for t in times_L + times_R))
 
-    # Peak
-    peak = float(np.max(np.abs(data)))
+    # Peak — scalar reductions, no full-length np.abs copy
+    peak = max(abs(float(data.max())), abs(float(data.min())))
     peak_dbfs = round(20 * np.log10(peak + 1e-12), 2)
 
     # DC offset per channel
@@ -84,10 +85,15 @@ def check_integrity(data: np.ndarray, sr: int, path: str) -> dict:
     else:
         dynamic_range = 0.0
 
-    # Fake 24-bit: needs int32 read — can't derive from float32
-    data_int, _ = sf.read(path, dtype="int32")
-    lsb_mask = data_int & 0xFF
-    lsb_zero_ratio = round(float(np.sum(lsb_mask == 0) / lsb_mask.size), 4)
+    # Fake 24-bit: needs int32 read — can't derive from float32. Stream in blocks
+    # so we never hold a second full-length copy of the file (~342MB → ~8MB window).
+    zeros = 0
+    total = 0
+    for blk in sf.blocks(path, blocksize=1 << 20, dtype="int32"):
+        lsb = blk & 0xFF
+        zeros += int(np.count_nonzero(lsb == 0))
+        total += lsb.size
+    lsb_zero_ratio = round(zeros / total, 4) if total else 0.0
 
     return {
         "clip_events_L": events_L,
