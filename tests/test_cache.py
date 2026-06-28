@@ -189,6 +189,37 @@ def test_ac1_one_measurement_row(cache, analyze_calls, audio_file, db_path):
     assert len(_rows(db_path, "measurements")) == 1
 
 
+# --------------------------------------------------------------------------- #
+# Regression: real check modules return numpy float32, which json.dumps cannot
+# serialize without the numpy_to_native default. Earlier fakes used pure-Python
+# floats and masked this — crashed on every real audio file.
+# --------------------------------------------------------------------------- #
+
+def test_numpy_values_are_cacheable(cache, monkeypatch, audio_file, db_path):
+    import numpy as np
+    import core.analyzer
+
+    def _fake_numpy(path, with_spectrogram=False):
+        r = _make_result(path)
+        # Inject numpy scalar types the real pipeline produces.
+        r["playability"]["peak_dbfs"] = np.float32(-1.10)
+        r["authenticity"]["top_freq_hz"] = np.float32(21800.0)
+        r["authenticity"]["spectral_coverage_ratio"] = np.float64(0.989)
+        r["click_count"] = np.int64(0)
+        r["clip_times_sec"] = [np.float32(1.5), np.float32(2.5)]
+        return r
+
+    monkeypatch.setattr(core.analyzer, "analyze", _fake_numpy)
+
+    # MISS path must persist without TypeError, and HIT path must round-trip.
+    r1 = cache.get_or_analyze(str(audio_file))
+    r2 = cache.get_or_analyze(str(audio_file))
+    assert len(_rows(db_path, "measurements")) == 1
+    # Cached values come back as native floats (float32 precision tolerance).
+    assert r2["playability"]["peak_dbfs"] == pytest.approx(-1.10, abs=1e-5)
+    assert r2["clip_times_sec"] == pytest.approx([1.5, 2.5])
+
+
 def test_cached_result_matches_analyze_shape(cache, analyze_calls, audio_file):
     expected = _make_result(str(audio_file))
     cache.get_or_analyze(str(audio_file))          # populate

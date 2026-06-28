@@ -22,6 +22,7 @@ import core.analyzer
 import core.config_hash
 import core.reverdict
 import core.spectrogram
+from core.utils import numpy_to_native
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS measurements (
@@ -199,7 +200,7 @@ def get_or_analyze(path: str, with_spectrogram: bool = False) -> dict:
             conn.execute(
                 "INSERT OR IGNORE INTO measurements "
                 "(abs_path, mtime_ns, size, raw_json, created) VALUES (?,?,?,?,?)",
-                (abs_path, mtime_ns, size, json.dumps(raw), now),
+                (abs_path, mtime_ns, size, json.dumps(raw, default=numpy_to_native), now),
             )
             conn.commit()
             mrow = conn.execute(
@@ -211,7 +212,7 @@ def get_or_analyze(path: str, with_spectrogram: bool = False) -> dict:
             conn.execute(
                 "INSERT OR REPLACE INTO verdicts "
                 "(measurement_id, config_hash, verdict_json, created) VALUES (?,?,?,?)",
-                (mid, config_hash, json.dumps(verdict), now),
+                (mid, config_hash, json.dumps(verdict, default=numpy_to_native), now),
             )
             conn.commit()
         else:
@@ -230,7 +231,7 @@ def get_or_analyze(path: str, with_spectrogram: bool = False) -> dict:
                     "INSERT OR REPLACE INTO verdicts "
                     "(measurement_id, config_hash, verdict_json, created) "
                     "VALUES (?,?,?,?)",
-                    (mid, config_hash, json.dumps(verdict), time.time()),
+                    (mid, config_hash, json.dumps(verdict, default=numpy_to_native), time.time()),
                 )
                 conn.commit()
 
