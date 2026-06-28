@@ -3,6 +3,12 @@ import SwiftUI
 struct ReportCardView: View {
     let result: AnalysisResult
 
+    // Lazy thumbnail: analyze no longer renders the spectrogram (spectrogram:false),
+    // so the card renders it on-demand when it appears and caches it in @State —
+    // not re-rendered on every redraw, and never rendered for cards never scrolled to.
+    @State private var thumbnail: NSImage?
+    @State private var thumbnailFailed = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Header
@@ -95,28 +101,37 @@ struct ReportCardView: View {
                 }
             }
 
-            // Spectrogram
-            if let specPath = result.spectrogramPath,
-               let img = NSImage(contentsOfFile: specPath) {
-                VStack(spacing: 6) {
+            // Spectrogram (lazy — rendered on appear, cached in @State)
+            VStack(spacing: 6) {
+                if let img = thumbnail {
                     Image(nsImage: img)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity, maxHeight: 100)
                         .cornerRadius(4)
-                    HStack {
-                        Spacer()
-                        Button {
-                            SpectrogramWindow.open(result: result)
-                        } label: {
-                            Label("Full Spectrogram", systemImage: "waveform.circle")
-                                .font(.system(size: 10, weight: .medium))
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.accentColor)
+                } else if thumbnailFailed {
+                    Text("Spectrogram unavailable")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                } else {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                }
+                HStack {
+                    Spacer()
+                    Button {
+                        SpectrogramWindow.open(result: result)
+                    } label: {
+                        Label("Full Spectrogram", systemImage: "waveform.circle")
+                            .font(.system(size: 10, weight: .medium))
                     }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.accentColor)
                 }
             }
+            .task { await loadThumbnail() }
 
             // Flags
             if !result.flags.isEmpty {
@@ -142,6 +157,27 @@ struct ReportCardView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color(NSColor.separatorColor), lineWidth: 1)
         )
+    }
+
+    /// Render the thumbnail on first appearance via the on-demand spectrogram path.
+    /// Runs once (guarded), result cached in @State across redraws.
+    private func loadThumbnail() async {
+        if thumbnail != nil || thumbnailFailed { return }
+        do {
+            let path = try await SpectrogramService.generateFull(
+                filePath: result.filePath ?? result.filename,
+                duration: result.format.duration,
+                humHz: result.vinyl?.humHz,
+                clipTimes: result.clipTimesSec
+            )
+            if let img = NSImage(contentsOfFile: path) {
+                thumbnail = img
+            } else {
+                thumbnailFailed = true
+            }
+        } catch {
+            thumbnailFailed = true
+        }
     }
 
     private func formatDuration(_ seconds: Double) -> String {

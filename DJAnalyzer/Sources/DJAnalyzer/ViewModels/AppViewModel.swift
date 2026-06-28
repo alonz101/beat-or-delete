@@ -23,6 +23,11 @@ class AppViewModel: ObservableObject {
 
         guard !files.isEmpty else { return }
 
+        // Warm the persistent analyzer now (queue interaction) so the one-time
+        // Python import overlaps with the user reviewing the queue. This is the
+        // only warm trigger — opening/closing the app without files starts nothing.
+        Task { await AnalyzerService.warm() }
+
         let newItems = files.map { FileItem(url: $0) }
         items.append(contentsOf: newItems)
 
