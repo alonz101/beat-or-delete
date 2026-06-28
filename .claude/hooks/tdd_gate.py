@@ -12,6 +12,21 @@ def main():
     if not Path("tests").exists():
         sys.exit(0)
 
+    # Skip during TDD RED/GREEN phase — tests are intentionally failing.
+    # Use git --git-common-dir to find the real project root even from a worktree,
+    # since __file__ resolves to the worktree's copy of this hook.
+    try:
+        git_common = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            capture_output=True, text=True, cwd=str(Path(__file__).parent),
+        ).stdout.strip()
+        project_root = (Path(__file__).parent / git_common).resolve().parent
+        phase_file = project_root / ".claude" / "state" / "phase"
+    except Exception:
+        phase_file = Path(__file__).parent.parent / "state" / "phase"
+    if phase_file.exists() and phase_file.read_text().strip() == "implement":
+        sys.exit(0)
+
     try:
         config = json.loads(Path(".claude/hooks/hooks.config.json").read_text())
     except Exception:
