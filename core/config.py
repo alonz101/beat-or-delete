@@ -10,6 +10,8 @@ SPECTRAL_MP3_128_CUTOFF_HZ = 17_000
 SPECTRAL_MP3_192_CUTOFF_HZ = 19_000
 SPECTRAL_MP3_320_CUTOFF_HZ = 20_500
 SPECTRAL_MUSIC_CEILING_HZ = 22_050  # cap effective Nyquist for files with sr > 44100
+SPECTRAL_CLIFF_FLOOR_HZ = 12_000    # start scanning for cutoff cliff above this frequency
+SPECTRAL_CLIFF_HARD_PP = 15.0       # frame-occupancy drop (pp) in 1kHz window → hard MP3 cutoff
 
 # --- Bitrate ---
 BITRATE_320_THRESHOLD = 310_000   # claims 320kbps if bitrate >= this

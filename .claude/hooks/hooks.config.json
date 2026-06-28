@@ -1,0 +1,5 @@
+{
+  "test_command": "python -m pytest tests/ -x -q 2>&1",
+  "source_globs": ["core/**/*.py", "batch.py"],
+  "test_globs": ["tests/**/*.py"]
+}

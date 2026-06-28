@@ -54,6 +54,7 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
             "nyquist_hz": spectral["nyquist_hz"],
             "spectral_verdict": spectral["spectral_verdict"],
             "suspected_origin": spectral["suspected_origin"],
+            "rolloff_shape": spectral["rolloff_shape"],
             "lsb_zero_ratio": integrity["lsb_zero_ratio"],
         },
         "playability": {

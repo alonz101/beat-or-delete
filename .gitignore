@@ -33,3 +33,7 @@ DJAnalyzer/build/
 
 # Temp spectrograms
 /tmp/*.png
+
+# Claude workflow (local only)
+.claude/state/
+.claude/settings.local.json

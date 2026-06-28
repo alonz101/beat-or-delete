@@ -11,6 +11,8 @@ from core.config import (
     SPECTRAL_MP3_192_CUTOFF_HZ,
     SPECTRAL_MP3_320_CUTOFF_HZ,
     SPECTRAL_MUSIC_CEILING_HZ,
+    SPECTRAL_CLIFF_FLOOR_HZ,
+    SPECTRAL_CLIFF_HARD_PP,
 )
 
 
@@ -41,6 +43,7 @@ def check_spectral(path: str, analysis_duration: float = SPECTRAL_ANALYSIS_DURAT
         verdict = "GENUINE"
 
     suspected_source = _classify_cutoff(top_freq)
+    cliff_pp, rolloff_shape = _compute_rolloff_cliff(fft_db, freqs)
 
     return {
         "nyquist_hz": nyquist,
@@ -48,7 +51,30 @@ def check_spectral(path: str, analysis_duration: float = SPECTRAL_ANALYSIS_DURAT
         "coverage_ratio": round(ratio, 4),
         "spectral_verdict": verdict,
         "suspected_origin": suspected_source,
+        "rolloff_cliff_pp": cliff_pp,
+        "rolloff_shape": rolloff_shape,
     }
+
+
+def _compute_rolloff_cliff(fft_db: np.ndarray, freqs: np.ndarray) -> tuple[float, str]:
+    """
+    Detects whether HF rolloff is a hard cliff (MP3 encoder cutoff) or gradual (vinyl/natural).
+    Measures the largest drop in frame-occupancy (% frames with energy > -60 dB rel max)
+    across any 1kHz window above SPECTRAL_CLIFF_FLOOR_HZ.
+    Hard MP3 cutoff → >15pp drop; gradual organic rolloff → <15pp.
+    """
+    occupancy = (fft_db > -60).sum(axis=1) / fft_db.shape[1] * 100
+    start = np.searchsorted(freqs, SPECTRAL_CLIFF_FLOOR_HZ)
+    max_drop = 0.0
+    for i in range(start, len(freqs) - 1):
+        j = np.searchsorted(freqs, freqs[i] + 1000)
+        if j >= len(freqs):
+            break
+        drop = float(occupancy[i] - occupancy[j])
+        if drop > max_drop:
+            max_drop = drop
+    shape = "cliff" if max_drop >= SPECTRAL_CLIFF_HARD_PP else "gradual"
+    return round(max_drop, 1), shape
 
 
 def _classify_cutoff(freq_hz: float) -> str:

@@ -65,11 +65,27 @@ def compute_flags(
                 f"({spectral['coverage_ratio']*100:.1f}% of Nyquist) — {origin_text}"
             )
         elif sv == "SUSPECT":
-            flags.append("SUSPECT_LOSSLESS")
-            verdict_reasons.append(
-                f"spectral coverage only {spectral['coverage_ratio']*100:.1f}% of Nyquist — "
-                f"possible lossy transcode"
-            )
+            is_vinyl = vinyl and vinyl.get("vinyl_rip")
+            rolloff_shape = spectral.get("rolloff_shape", "gradual")
+            if is_vinyl and rolloff_shape == "gradual":
+                # Gradual HF rolloff on a confirmed vinyl rip — consistent with natural
+                # pressing/cartridge rolloff, not evidence of a lossy transcode
+                info_reasons.append(
+                    f"spectral coverage {spectral['coverage_ratio']*100:.1f}% of Nyquist — "
+                    f"consistent with natural vinyl HF rolloff"
+                )
+            else:
+                flags.append("SUSPECT_LOSSLESS")
+                if is_vinyl and rolloff_shape == "cliff":
+                    verdict_reasons.append(
+                        f"spectral ceiling at {spectral['top_freq_hz']:.0f}Hz — "
+                        f"vinyl cut from a lossy digital master"
+                    )
+                else:
+                    verdict_reasons.append(
+                        f"spectral coverage only {spectral['coverage_ratio']*100:.1f}% of Nyquist — "
+                        f"possible lossy transcode"
+                    )
 
     if meta["bit_depth"] == 24 and integrity["lsb_zero_ratio"] > LSB_ZERO_RATIO_FAKE_24BIT:
         flags.append("FAKE_24BIT")
