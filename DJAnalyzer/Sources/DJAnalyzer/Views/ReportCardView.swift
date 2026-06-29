@@ -95,27 +95,20 @@ struct ReportCardView: View {
                 }
             }
 
-            // Spectrogram
-            if let specPath = result.spectrogramPath,
-               let img = NSImage(contentsOfFile: specPath) {
-                VStack(spacing: 6) {
-                    Image(nsImage: img)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity, maxHeight: 100)
-                        .cornerRadius(4)
-                    HStack {
-                        Spacer()
-                        Button {
-                            SpectrogramWindow.open(result: result)
-                        } label: {
-                            Label("Full Spectrogram", systemImage: "waveform.circle")
-                                .font(.system(size: 10, weight: .medium))
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.accentColor)
-                    }
+            // Spectrogram: on-demand only. Card thumbnails were removed — rendering
+            // one spectrogram process per card (each ~300MB–1GB of librosa/matplotlib)
+            // caused unbounded concurrent spawns and OOM. The full spectrogram opens
+            // in its own window, one at a time, on user request.
+            HStack {
+                Spacer()
+                Button {
+                    SpectrogramWindow.open(result: result)
+                } label: {
+                    Label("Full Spectrogram", systemImage: "waveform.circle")
+                        .font(.system(size: 10, weight: .medium))
                 }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
             }
 
             // Flags

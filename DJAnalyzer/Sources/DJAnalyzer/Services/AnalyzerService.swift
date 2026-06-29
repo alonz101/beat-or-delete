@@ -33,18 +33,27 @@ actor AnalyzerService {
         return FileManager.default.fileExists(atPath: path) ? path : nil
     }
 
+    // One fresh `dj-analyze` process per track. Each exits when done, so the OS
+    // reclaims all of its memory — nothing accumulates across a folder. The gate
+    // caps how many run at once so a large folder can't launch dozens of heavy
+    // processes simultaneously (each big track needs ~1.5–2GB). Cap 3 → ~5GB worst
+    // case. The sqlite cache is used inside the one-shot process (get_or_analyze).
+    private static let gate = AsyncSemaphore(limit: 3)
+
     static func analyze(fileURL: URL) async throws -> AnalysisResult {
+        await gate.acquire()
+        defer { Task { await gate.release() } }
+
         let output: String
         if let bin = bundledAnalyze {
-            output = try await ProcessRunner.run(bin, args: [fileURL.path, "--spectrogram"])
+            output = try await ProcessRunner.run(bin, args: [fileURL.path])
         } else {
             let python = try findPython()
             guard FileManager.default.fileExists(atPath: analyzerScript) else {
                 throw AnalyzerError.scriptNotFound
             }
-            output = try await ProcessRunner.run(python, args: [analyzerScript, fileURL.path, "--spectrogram"])
+            output = try await ProcessRunner.run(python, args: [analyzerScript, fileURL.path])
         }
-
         return try decode(output, for: fileURL.lastPathComponent)
     }
 
@@ -131,4 +140,31 @@ actor AnalyzerService {
         }
     }
 
+}
+
+/// Minimal async counting semaphore — caps concurrent analyses without blocking
+/// threads (actor-isolated, suspends instead).
+actor AsyncSemaphore {
+    private let limit: Int
+    private var count = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    init(limit: Int) { self.limit = limit }
+
+    func acquire() async {
+        if count < limit {
+            count += 1
+            return
+        }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        if waiters.isEmpty {
+            count -= 1
+        } else {
+            // Hand the permit straight to the next waiter (count stays at limit).
+            waiters.removeFirst().resume()
+        }
+    }
 }
