@@ -72,57 +72,6 @@ def _connect():
     return conn
 
 
-def _split(result: dict):
-    """Split an analyze() result into stored raw/verdict blobs."""
-    raw = {
-        "meta": {
-            "container": result["format"]["container"],
-            "codec": result["format"]["codec"],
-            "sample_rate": result["format"]["sample_rate"],
-            "bit_depth": result["format"]["bit_depth"],
-            "bitrate": result["format"]["bitrate"],
-            "duration": result["format"]["duration"],
-            "channels": result["format"]["channels"],
-            "lame_header": result["authenticity"]["lame_header"],
-        },
-        "spectral": {
-            "coverage_ratio": result["authenticity"]["spectral_coverage_ratio"],
-            "top_freq_hz": result["authenticity"]["top_freq_hz"],
-            "nyquist_hz": result["authenticity"]["nyquist_hz"],
-            "spectral_verdict": result["authenticity"]["spectral_verdict"],
-            "suspected_origin": result["authenticity"]["suspected_origin"],
-            "rolloff_shape": result["authenticity"]["rolloff_shape"],
-        },
-        "integrity": {
-            "clip_events_L": result["playability"]["clip_events_L"],
-            "clip_events_R": result["playability"]["clip_events_R"],
-            "clip_max_ms": result["playability"]["clip_max_ms"],
-            "peak_dbfs": result["playability"]["peak_dbfs"],
-            "dynamic_range_db": result["playability"]["dynamic_range_db"],
-            "noise_floor_dbfs": result["playability"]["noise_floor_dbfs"],
-            "dc_offset_L": result["playability"]["dc_offset_L"],
-            "dc_offset_R": result["playability"]["dc_offset_R"],
-            "lsb_zero_ratio": result["authenticity"]["lsb_zero_ratio"],
-            "clip_times_sec": result["clip_times_sec"],
-        },
-        "loudness": {
-            "loudness_lufs": result["playability"]["loudness_lufs"],
-            "true_peak_L_dbfs": result["playability"]["true_peak_L_dbfs"],
-            "true_peak_R_dbfs": result["playability"]["true_peak_R_dbfs"],
-        },
-        "vinyl": result["vinyl"],
-        "click_count": result["click_count"],
-        "clip_times_sec": result["clip_times_sec"],
-    }
-    verdict = {
-        "verdict": result["verdict"],
-        "flags": result["flags"],
-        "reasons": result["verdict_reasons"],
-        "info_reasons": result["info_reasons"],
-    }
-    return raw, verdict
-
-
 def _assemble(path: str, raw: dict, verdict: dict) -> dict:
     """Reconstruct the analyze() result shape from raw + verdict blobs."""
     p = Path(path)
@@ -192,9 +141,15 @@ def get_or_analyze(path: str, with_spectrogram: bool = False) -> dict:
         ).fetchone()
 
         if row is None:
-            # MISS: analyze, split, persist.
-            result = core.analyzer.analyze(path)
-            raw, verdict = _split(result)
+            # MISS: analyze, persist. analyze_raw returns the raw components
+            # directly (no need to reconstruct them from the assembled dict).
+            raw, assembled = core.analyzer.analyze_raw(path)
+            verdict = {
+                "verdict": assembled["verdict"],
+                "flags": assembled["flags"],
+                "reasons": assembled["verdict_reasons"],
+                "info_reasons": assembled["info_reasons"],
+            }
             now = time.time()
             conn.execute(
                 "INSERT OR IGNORE INTO measurements "
