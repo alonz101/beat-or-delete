@@ -89,6 +89,55 @@ def _make_result(path):
     }
 
 
+def _make_raw(path):
+    """The raw_components half of analyze_raw()'s (raw, assembled) return.
+
+    Mirrors core.analyzer.analyze_raw: each sub-dict is a check module's raw
+    output (meta/spectral/integrity/loudness), plus vinyl/click_count/clip_times.
+    Values are consistent with _make_result so _assemble(raw) round-trips to it.
+    """
+    return {
+        "meta": {
+            "container": _FORMAT["container"],
+            "codec": _FORMAT["codec"],
+            "sample_rate": _FORMAT["sample_rate"],
+            "bit_depth": _FORMAT["bit_depth"],
+            "bitrate": _FORMAT["bitrate"],
+            "duration": _FORMAT["duration"],
+            "channels": _FORMAT["channels"],
+            "lame_header": _AUTHENTICITY["lame_header"],
+        },
+        "spectral": {
+            "coverage_ratio": _AUTHENTICITY["spectral_coverage_ratio"],
+            "top_freq_hz": _AUTHENTICITY["top_freq_hz"],
+            "nyquist_hz": _AUTHENTICITY["nyquist_hz"],
+            "spectral_verdict": _AUTHENTICITY["spectral_verdict"],
+            "suspected_origin": _AUTHENTICITY["suspected_origin"],
+            "rolloff_shape": _AUTHENTICITY["rolloff_shape"],
+        },
+        "integrity": {
+            "clip_events_L": _PLAYABILITY["clip_events_L"],
+            "clip_events_R": _PLAYABILITY["clip_events_R"],
+            "clip_max_ms": _PLAYABILITY["clip_max_ms"],
+            "peak_dbfs": _PLAYABILITY["peak_dbfs"],
+            "dynamic_range_db": _PLAYABILITY["dynamic_range_db"],
+            "noise_floor_dbfs": _PLAYABILITY["noise_floor_dbfs"],
+            "dc_offset_L": _PLAYABILITY["dc_offset_L"],
+            "dc_offset_R": _PLAYABILITY["dc_offset_R"],
+            "lsb_zero_ratio": _AUTHENTICITY["lsb_zero_ratio"],
+            "clip_times_sec": [],
+        },
+        "loudness": {
+            "loudness_lufs": _PLAYABILITY["loudness_lufs"],
+            "true_peak_L_dbfs": _PLAYABILITY["true_peak_L_dbfs"],
+            "true_peak_R_dbfs": _PLAYABILITY["true_peak_R_dbfs"],
+        },
+        "vinyl": None,
+        "click_count": 0,
+        "clip_times_sec": [],
+    }
+
+
 # --------------------------------------------------------------------------- #
 # Fixtures
 # --------------------------------------------------------------------------- #
@@ -117,15 +166,16 @@ def audio_file(tmp_path):
 
 @pytest.fixture
 def analyze_calls(monkeypatch):
-    """Patch core.analyzer.analyze with a recording fake. Returns call list."""
+    """Patch core.analyzer.analyze_raw with a recording fake (the collaborator the
+    cache calls on a miss). Returns call list."""
     import core.analyzer
     calls = []
 
-    def _fake(path, with_spectrogram=False):
-        calls.append({"path": path, "with_spectrogram": with_spectrogram})
-        return _make_result(path)
+    def _fake_raw(path):
+        calls.append({"path": path})
+        return _make_raw(path), _make_result(path)
 
-    monkeypatch.setattr(core.analyzer, "analyze", _fake)
+    monkeypatch.setattr(core.analyzer, "analyze_raw", _fake_raw)
     return calls
 
 
@@ -199,17 +249,18 @@ def test_numpy_values_are_cacheable(cache, monkeypatch, audio_file, db_path):
     import numpy as np
     import core.analyzer
 
-    def _fake_numpy(path, with_spectrogram=False):
-        r = _make_result(path)
-        # Inject numpy scalar types the real pipeline produces.
-        r["playability"]["peak_dbfs"] = np.float32(-1.10)
-        r["authenticity"]["top_freq_hz"] = np.float32(21800.0)
-        r["authenticity"]["spectral_coverage_ratio"] = np.float64(0.989)
-        r["click_count"] = np.int64(0)
-        r["clip_times_sec"] = [np.float32(1.5), np.float32(2.5)]
-        return r
+    def _fake_numpy_raw(path):
+        raw = _make_raw(path)
+        # Inject numpy scalar types the real pipeline produces, into the raw blob
+        # (that's what gets persisted + round-tripped through json/_assemble).
+        raw["integrity"]["peak_dbfs"] = np.float32(-1.10)
+        raw["spectral"]["top_freq_hz"] = np.float32(21800.0)
+        raw["spectral"]["coverage_ratio"] = np.float64(0.989)
+        raw["click_count"] = np.int64(0)
+        raw["clip_times_sec"] = [np.float32(1.5), np.float32(2.5)]
+        return raw, _make_result(path)
 
-    monkeypatch.setattr(core.analyzer, "analyze", _fake_numpy)
+    monkeypatch.setattr(core.analyzer, "analyze_raw", _fake_numpy_raw)
 
     # MISS path must persist without TypeError, and HIT path must round-trip.
     r1 = cache.get_or_analyze(str(audio_file))
@@ -403,12 +454,12 @@ def test_concurrent_first_run_single_row(cache, audio_file, db_path, monkeypatch
     import core.analyzer
     calls = []
 
-    def _slow(path, with_spectrogram=False):
+    def _slow(path):
         calls.append(path)
         _time.sleep(0.02)          # widen the race window
-        return _make_result(path)
+        return _make_raw(path), _make_result(path)
 
-    monkeypatch.setattr(core.analyzer, "analyze", _slow)
+    monkeypatch.setattr(core.analyzer, "analyze_raw", _slow)
 
     errors = []
     barrier = threading.Barrier(8)
