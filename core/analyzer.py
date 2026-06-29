@@ -146,37 +146,6 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
 
 
 if __name__ == "__main__":
-    if "--serve" in sys.argv:
-        import os
-        # 1. Clean response channel BEFORE heavy imports / library noise.
-        saved_fd = os.dup(1)                 # private copy of real stdout
-        os.dup2(2, 1)                        # fd 1 (C-level stdout) now -> stderr
-        sys.stdout = sys.stderr              # stray print()/warnings -> stderr
-        resp = os.fdopen(saved_fd, "w", buffering=1)  # responses ONLY here
-
-        import core.cache                    # triggers heavy imports once
-        for line in sys.stdin:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                req = json.loads(line)
-            except Exception:
-                continue                     # skip junk lines
-            if req.get("cmd") == "shutdown":
-                break
-            rid = req.get("id")
-            try:
-                r = core.cache.get_or_analyze(
-                    req["path"], with_spectrogram=req.get("spectrogram", False)
-                )
-                out = {"id": rid, "result": r}
-            except Exception as e:
-                out = {"id": rid, "error": str(e)}
-            resp.write(json.dumps(out, default=numpy_to_native, separators=(",", ":")) + "\n")
-            resp.flush()
-        sys.exit(0)
-
     import core.cache
 
     if len(sys.argv) < 2:
