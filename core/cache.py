@@ -5,7 +5,7 @@ Public API:
     invalidate(path) -> None
 
 Collaborators are referenced through their modules so tests can monkeypatch:
-    core.analyzer.analyze
+    core.analyzer.analyze_raw
     core.reverdict.reverdict_from_raw
     core.spectrogram.generate_spectrogram
     core.config_hash.CONFIG_HASH (read at call time)
