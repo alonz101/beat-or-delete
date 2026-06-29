@@ -37,3 +37,6 @@ DJAnalyzer/build/
 # Claude workflow (local only)
 .claude/state/
 .claude/settings.local.json
+
+# Git worktrees (local only)
+.claude/worktrees/
