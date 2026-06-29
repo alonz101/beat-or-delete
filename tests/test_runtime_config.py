@@ -138,6 +138,40 @@ def test_float_default_coerces_int_to_float(rc):
 
 
 # --------------------------------------------------------------------------- #
+# 3b. Regression: valid JSON dict, NON-coercible values per key.
+# Previously type(default)(value) raised ValueError/TypeError outside the
+# guard and crashed load_overrides(). Source now drops bad values per-key.
+# --------------------------------------------------------------------------- #
+
+def test_non_coercible_values_dropped_not_raised(rc):
+    # int default fed a non-numeric string; float default fed a list.
+    _write(rc._overrides_path(),
+           {"CLIP_BLOCKING_EVENTS": "abc", "LUFS_CLUB_MIN": [1, 2]})
+    assert rc.load_overrides() == {}            # both bad keys dropped
+    snap = rc.active()
+    assert snap.CLIP_BLOCKING_EVENTS == config.CLIP_BLOCKING_EVENTS
+    assert snap.LUFS_CLUB_MIN == config.LUFS_CLUB_MIN
+
+
+@pytest.mark.parametrize("bad_value", ["abc", [1, 2], None, {"nested": 1}])
+def test_each_non_coercible_kind_dropped(rc, bad_value):
+    # CLIP_BLOCKING_EVENTS is an int default; none of these coerce cleanly.
+    _write(rc._overrides_path(), {"CLIP_BLOCKING_EVENTS": bad_value})
+    assert rc.load_overrides() == {}
+    assert rc.active().CLIP_BLOCKING_EVENTS == config.CLIP_BLOCKING_EVENTS
+
+
+def test_bad_value_does_not_block_good_key(rc):
+    # A bad key alongside a coercible one: only the good override survives.
+    _write(rc._overrides_path(),
+           {"CLIP_BLOCKING_EVENTS": "abc", "DYNAMIC_RANGE_BLOCKING_DB": 3.0})
+    assert rc.load_overrides() == {"DYNAMIC_RANGE_BLOCKING_DB": 3.0}
+    snap = rc.active()
+    assert snap.DYNAMIC_RANGE_BLOCKING_DB == 3.0
+    assert snap.CLIP_BLOCKING_EVENTS == config.CLIP_BLOCKING_EVENTS
+
+
+# --------------------------------------------------------------------------- #
 # 4. Unknown key in file is ignored
 # --------------------------------------------------------------------------- #
 
