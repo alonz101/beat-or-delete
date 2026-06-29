@@ -21,7 +21,6 @@ from pathlib import Path
 import core.analyzer
 import core.config_hash
 import core.reverdict
-import core.spectrogram
 from core.utils import numpy_to_native
 
 _SCHEMA = """
@@ -238,7 +237,8 @@ def get_or_analyze(path: str, with_spectrogram: bool = False) -> dict:
     result = _assemble(path, raw, verdict)
     result["spectrogram_path"] = None
     if with_spectrogram:
-        result["spectrogram_path"] = core.spectrogram.generate_spectrogram(path)
+        from core.spectrogram import generate_spectrogram
+        result["spectrogram_path"] = generate_spectrogram(path)
     return result
 
 

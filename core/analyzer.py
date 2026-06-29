@@ -3,19 +3,47 @@ import sys
 import json
 from pathlib import Path
 
-import soundfile as sf
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from core.checks.metadata import get_metadata
-from core.checks.spectral import check_spectral
-from core.checks.integrity import check_integrity
-from core.checks.loudness import check_loudness
-from core.checks.vinyl import check_vinyl
-from core.checks.clicks import count_clicks
-from core.verdict import compute_verdict
-from core.spectrogram import generate_spectrogram
 from core.utils import numpy_to_native
+
+
+# Module-level lazy delegators. These exist as attributes at import time (so
+# tests can monkeypatch them) but pull their heavy-lib-backed implementations
+# only when actually called — i.e. only on a real cache MISS, never on import.
+def get_metadata(path):
+    from core.checks.metadata import get_metadata as _f
+    return _f(path)
+
+
+def check_spectral(path):
+    from core.checks.spectral import check_spectral as _f
+    return _f(path)
+
+
+def check_integrity(data, sr, path):
+    from core.checks.integrity import check_integrity as _f
+    return _f(data, sr, path)
+
+
+def check_loudness(data, sr):
+    from core.checks.loudness import check_loudness as _f
+    return _f(data, sr)
+
+
+def check_vinyl(data, sr, noise_floor_dbfs, click_count):
+    from core.checks.vinyl import check_vinyl as _f
+    return _f(data, sr, noise_floor_dbfs, click_count)
+
+
+def count_clicks(data, sr):
+    from core.checks.clicks import count_clicks as _f
+    return _f(data, sr)
+
+
+def compute_verdict(*args, **kwargs):
+    from core.verdict import compute_verdict as _f
+    return _f(*args, **kwargs)
 
 
 def analyze_raw(path: str) -> tuple[dict, dict]:
@@ -24,7 +52,13 @@ def analyze_raw(path: str) -> tuple[dict, dict]:
     raw_components shape matches what core.cache stores in raw_json:
       {meta, spectral, integrity, loudness, vinyl, click_count, clip_times_sec}
     assembled_result is the full public dict (same shape as analyze()).
+
+    Heavy audio libs (librosa/scipy/pyloudnorm/soundfile) are imported lazily
+    via the module-level delegators above + the local soundfile import, so they
+    load only when real analysis runs — never on import.
     """
+    import soundfile as sf
+
     p = Path(path)
     if not p.exists():
         assembled = {"error": f"File not found: {path}"}
@@ -103,6 +137,7 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
 
     if with_spectrogram and "error" not in result:
         try:
+            from core.spectrogram import generate_spectrogram
             result["spectrogram_path"] = generate_spectrogram(path)
         except Exception:
             pass
