@@ -35,6 +35,20 @@ class AppViewModel: ObservableObject {
         items = []
     }
 
+    /// Re-run the one-shot analyze for every loaded file. Each fresh `dj-analyze`
+    /// reads the new thresholds.json → new CONFIG_HASH → verdict miss → fast
+    /// reverdict (cache hits the measurement, no re-FFT). Bounded by the cap=3 gate.
+    func reverdictAll() {
+        for item in items {
+            switch item.state {
+            case .done, .failed:
+                analyzeItem(item)
+            default:
+                break
+            }
+        }
+    }
+
     func exportReports() {
         let panel = NSSavePanel()
         panel.nameFieldStringValue = "dj-report"

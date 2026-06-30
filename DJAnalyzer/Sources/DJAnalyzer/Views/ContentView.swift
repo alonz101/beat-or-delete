@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var vm = AppViewModel()
+    @EnvironmentObject var vm: AppViewModel
 
     var body: some View {
         VStack(spacing: 0) {
