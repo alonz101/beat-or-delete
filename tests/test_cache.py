@@ -49,7 +49,7 @@ _AUTHENTICITY = {
     "spectral_coverage_ratio": 0.989,
     "top_freq_hz": 21800.0,
     "nyquist_hz": 22050.0,
-    "spectral_verdict": "OK",
+    "spectral_verdict": "GENUINE",
     "suspected_origin": "likely genuine lossless",
     "rolloff_shape": "gradual",
     "lsb_zero_ratio": 0.10,
@@ -108,10 +108,12 @@ def _make_raw(path):
             "lame_header": _AUTHENTICITY["lame_header"],
         },
         "spectral": {
+            # Real post-T-3 raw blobs no longer carry spectral_verdict — _assemble
+            # DERIVES authenticity.spectral_verdict from coverage_ratio via
+            # flags.classify_coverage (0.989 → "GENUINE").
             "coverage_ratio": _AUTHENTICITY["spectral_coverage_ratio"],
             "top_freq_hz": _AUTHENTICITY["top_freq_hz"],
             "nyquist_hz": _AUTHENTICITY["nyquist_hz"],
-            "spectral_verdict": _AUTHENTICITY["spectral_verdict"],
             "suspected_origin": _AUTHENTICITY["suspected_origin"],
             "rolloff_shape": _AUTHENTICITY["rolloff_shape"],
         },
