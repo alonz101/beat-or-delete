@@ -19,8 +19,10 @@ from contextlib import closing
 from pathlib import Path
 
 import core.analyzer
+import core.checks.flags
 import core.config_hash
 import core.reverdict
+import core.runtime_config
 from core.utils import numpy_to_native
 
 _SCHEMA = """
@@ -96,7 +98,7 @@ def _assemble(path: str, raw: dict, verdict: dict) -> dict:
             "spectral_coverage_ratio": spectral["coverage_ratio"],
             "top_freq_hz": spectral["top_freq_hz"],
             "nyquist_hz": spectral["nyquist_hz"],
-            "spectral_verdict": spectral["spectral_verdict"],
+            "spectral_verdict": core.checks.flags.classify_coverage(spectral["coverage_ratio"], core.runtime_config.active()),
             "suspected_origin": spectral["suspected_origin"],
             "rolloff_shape": spectral["rolloff_shape"],
             "lsb_zero_ratio": integrity["lsb_zero_ratio"],

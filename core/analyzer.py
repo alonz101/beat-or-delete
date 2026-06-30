@@ -5,6 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import core.checks.flags
+import core.runtime_config
 from core.utils import numpy_to_native
 
 
@@ -101,7 +103,7 @@ def analyze_raw(path: str) -> tuple[dict, dict]:
             "spectral_coverage_ratio": spectral["coverage_ratio"],
             "top_freq_hz": spectral["top_freq_hz"],
             "nyquist_hz": spectral["nyquist_hz"],
-            "spectral_verdict": spectral["spectral_verdict"],
+            "spectral_verdict": core.checks.flags.classify_coverage(spectral["coverage_ratio"], core.runtime_config.active()),
             "suspected_origin": spectral["suspected_origin"],
             "rolloff_shape": spectral["rolloff_shape"],
             "lsb_zero_ratio": integrity["lsb_zero_ratio"],
