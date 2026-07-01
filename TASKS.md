@@ -43,6 +43,23 @@ SPEC: `docs/specs/persistent-analyzer/SPEC.md` · PLAN: `docs/specs/persistent-a
 - Q5: sequential Swift dispatch (one request in flight, matches sequential server)
 - Tests MUST use real audio (tiny generated WAV + 1 real-file smoke) — NOT monkeypatched analyze
 
+### configurable-thresholds (#7) · branch: `feat/configurable-thresholds` · worktree: `.claude/worktrees/configurable-thresholds`
+SPEC: `docs/specs/configurable-thresholds/SPEC.md` · PLAN: `docs/specs/configurable-thresholds/PLAN.md`
+
+| # | Wave | File | Status |
+|---|------|------|--------|
+| T-1 | W1 | `core/runtime_config.py` (new) — overlay thresholds.json on defaults; active()/load_overrides()/test hooks | DONE (review r1 BLOCK: _coerce crashed on non-coercible value → per-key guard; +regression tests. 64 suite green) |
+| T-2 | W2 | `core/config_hash.py` — fold active overrides into hash | DONE (review r1 APPROVE; 6 cache-invariants verified) |
+| T-3 | W2 | `core/checks/spectral.py` + `flags.py` — move FAKE_LOSSLESS/SUSPECT into flags (classify_coverage), call-time cfg reads; golden regression (HIGH RISK) | DONE (review r1 APPROVE 3ccae6f; 44/44, golden byte-identical, strict <, 17 knobs via cfg) |
+| T-4 | W3 | `core/analyzer.py` + `core/cache.py` — derive spectral_verdict at assembly via classify_coverage | DONE (review r1 APPROVE 89986a1; both seams identical, lazy-import intact, AC-4 genuine). Side-fix: stale "OK" fixture in test_cache → GENUINE (55535f5) |
+| T-5 | W4 | `AppSettings.swift` + `ThresholdCatalog.swift` (new) — override map, catalog, thresholds.json writer | DONE (Wave-4 review APPROVE 468382c) |
+| T-6 | W4 | `SettingsView.swift` + `DJAnalyzerApp.swift` + `ContentView.swift` — Config tab, validation, Reset, shared vm injection | DONE (Wave-4 review APPROVE 468382c) |
+| T-7 | W4 | `AppViewModel.swift` — reverdictAll() on Save | DONE (Wave-4 review APPROVE 468382c) |
+
+**Wave 4 review APPROVE highlights:** reverdictAll bounded by cap=3 gate (no OOM); Save writes thresholds.json (atomic) BEFORE reverdictAll; single shared vm injected both scenes; path/format match Python runtime_config; 17 const names parity-checked. Non-blocking: in-flight .analyzing items skipped on Save (self-corrects next Save). **PENDING: GUI verification on real app before declaring done (per verify-real-path lesson).**
+
+**Decisions locked:** verdict-time thresholds only; auto re-decide on Save. Q1 keep MP3 cutoff Hz fixed v1. Q2 hardcode Swift catalog + CI parity grep. Q3 drop unused BITRATE_192. Q4 rely on golden regression for round-4 boundary. Q5 N one-shot spawns on Save OK (cap=3). Q6 AppViewModel shared instance injected into both scenes.
+
 ## Fixes
 
 ### lazy-imports · branch: `feat/persistent-analyzer` · worktree: `.claude/worktrees/persistent-analyzer`
