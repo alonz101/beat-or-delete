@@ -6,7 +6,7 @@ struct DJAnalyzerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .environmentObject(vm)
         }
         .windowStyle(.titleBar)
