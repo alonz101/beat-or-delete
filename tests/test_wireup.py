@@ -157,12 +157,16 @@ def test_analyze_still_works(monkeypatch):
 
 
 def test_analyzer_main_uses_cache():
-    """The __main__ block in analyzer.py must call get_or_analyze, not analyze."""
+    """CLI entry delegates to main(), which must route through get_or_analyze, not analyze."""
     src = Path(__file__).parent.parent / "core" / "analyzer.py"
     text = src.read_text()
-    # Find __main__ block
-    main_block = text[text.index("if __name__"):]
-    assert "get_or_analyze" in main_block, "__main__ block still calls analyze(), not get_or_analyze"
+    guard_idx = text.index("if __name__")
+    # The __main__ guard must delegate to main(), not do the work inline.
+    main_guard = text[guard_idx:]
+    assert "main(" in main_guard, "__main__ block must delegate to main()"
+    # main()'s body (from its def up to the guard) must use the cache.
+    main_body = text[text.index("def main("):guard_idx]
+    assert "get_or_analyze" in main_body, "main() still calls analyze(), not get_or_analyze"
 
 
 # ---------------------------------------------------------------------------

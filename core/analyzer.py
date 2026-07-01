@@ -147,13 +147,35 @@ def analyze(path: str, with_spectrogram: bool = False) -> dict:
     return result
 
 
-if __name__ == "__main__":
-    import core.cache
+def main(argv=None) -> int:
+    import argparse
 
-    if len(sys.argv) < 2:
+    if argv is None:
+        argv = sys.argv[1:]
+
+    parser = argparse.ArgumentParser(prog="analyzer.py")
+    parser.add_argument("audio_file", nargs="?")
+    parser.add_argument("--spectrogram", action="store_true")
+    parser.add_argument("--history", action="store_true")
+    parser.add_argument("--limit", type=int, default=10)
+    args = parser.parse_args(argv)
+
+    if args.history:
+        import core.history
+        query = args.audio_file if args.audio_file is not None else ""
+        hits = core.history.search_history(query, args.limit)
+        print(json.dumps(hits, default=numpy_to_native))
+        return 0
+
+    if not args.audio_file:
         print("Usage: python analyzer.py <audio_file> [--spectrogram]", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
-    with_spec = "--spectrogram" in sys.argv
-    result = core.cache.get_or_analyze(sys.argv[1], with_spectrogram=with_spec)
+    import core.cache
+    result = core.cache.get_or_analyze(args.audio_file, with_spectrogram=args.spectrogram)
     print(json.dumps(result, indent=2, default=numpy_to_native))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
