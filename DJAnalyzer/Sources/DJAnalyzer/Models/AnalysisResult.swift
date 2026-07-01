@@ -98,6 +98,10 @@ struct AnalysisResult: Codable, Identifiable {
     let verdictReasons: [String]
     let infoReasons: [String]
     let spectrogramPath: String?
+    let analyzedAt: Double?
+    let fileExists: Bool?
+
+    var analyzedDate: Date? { analyzedAt.map { Date(timeIntervalSince1970: $0) } }
 
     enum CodingKeys: String, CodingKey {
         case filename, format, authenticity, playability, vinyl, flags, verdict
@@ -107,6 +111,8 @@ struct AnalysisResult: Codable, Identifiable {
         case verdictReasons = "verdict_reasons"
         case infoReasons = "info_reasons"
         case spectrogramPath = "spectrogram_path"
+        case analyzedAt = "analyzed_at"
+        case fileExists = "file_exists"
     }
 }
 
