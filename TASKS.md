@@ -60,6 +60,20 @@ SPEC: `docs/specs/configurable-thresholds/SPEC.md` · PLAN: `docs/specs/configur
 
 **Decisions locked:** verdict-time thresholds only; auto re-decide on Save. Q1 keep MP3 cutoff Hz fixed v1. Q2 hardcode Swift catalog + CI parity grep. Q3 drop unused BITRATE_192. Q4 rely on golden regression for round-4 boundary. Q5 N one-shot spawns on Save OK (cap=3). Q6 AppViewModel shared instance injected into both scenes.
 
+### history-tab (#5) · branch: `feat/history-tab` · worktree: `.claude/worktrees/history-tab`
+SPEC: `docs/specs/history-tab/SPEC.md` · PLAN: `docs/specs/history-tab/PLAN.md`
+
+| # | Wave | File | Status |
+|---|------|------|--------|
+| T-1 | W1 | `core/history.py` (new) + `tests/test_history.py` | DONE (review APPROVE; 2-layer invariant + call-time CONFIG_HASH + no-heavy-imports verified; 13 green) |
+| T-2 | W1 | `core/analyzer.py` main(argv) + `--history` | DONE (review APPROVE; lazy import, no-collision; fixed stale test_wireup grep; 6 green, suite 144) |
+| T-3 | W2 | `Models/AnalysisResult.swift` — add optional `analyzedAt: Double?` + `fileExists: Bool?` (byte-compat decode) | TODO |
+| T-4 | W2 | `Services/HistoryService.swift` (new) — `search(query:limit:)` shells dj-analyze --history, decodes [AnalysisResult] | TODO |
+| T-5 | W2 | `ViewModels/AppViewModel.swift` — `addFromHistory(_:)` dedupe-by-resolved-path, .done state, no-op when missing | TODO |
+| T-6 | W3 | `Views/HistoryView.swift` + `RootView.swift` (new) + `DJAnalyzerApp.swift` — TabView Analyze+History, debounced search, ReportCardView reuse, Clear-search local-only; **MANUAL GUI VERIFY REQUIRED** | TODO |
+
+**Decisions locked:** verdict live under current CONFIG_HASH (reverdict from cache, verdicts-rows-only — never measurements); missing files listed + marked, add/spectrogram disabled; search = basename substring anywhere, prefix ranks first, recency tiebreak; click → ReportCard + addFromHistory into Analyze queue; Clear-search wipes History tab only. Q1 collapse to **most-recent row per path** (remaster→new name, dupes won't happen in practice). Q2 debounce ~150ms tune in T-6. Q3 absolute short date. Q4 missing-row → disabled affordance + note. `core/cache.py` NOT edited (golden: get_or_analyze + test_cache.py stay green).
+
 ## Fixes
 
 ### lazy-imports · branch: `feat/persistent-analyzer` · worktree: `.claude/worktrees/persistent-analyzer`
