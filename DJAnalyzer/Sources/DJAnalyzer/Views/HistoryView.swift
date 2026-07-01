@@ -93,7 +93,7 @@ struct HistoryView: View {
                         .background(Color(hex: "b52b2b").opacity(0.12))
                         .cornerRadius(6)
                     }
-                    ReportCardView(result: result)
+                    ReportCardView(result: result, spectrogramEnabled: result.fileExists != false)
                 }
                 .padding(16)
             }

@@ -2,6 +2,10 @@ import SwiftUI
 
 struct ReportCardView: View {
     let result: AnalysisResult
+    /// Missing-file rows (History tab) pass false: the source file is gone, so
+    /// shelling out to render a spectrogram would fail. Defaults true so every
+    /// existing Analyze-tab call site is unchanged.
+    var spectrogramEnabled: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -104,11 +108,13 @@ struct ReportCardView: View {
                 Button {
                     SpectrogramWindow.open(result: result)
                 } label: {
-                    Label("Full Spectrogram", systemImage: "waveform.circle")
+                    Label(spectrogramEnabled ? "Full Spectrogram" : "Spectrogram unavailable — file missing",
+                          systemImage: "waveform.circle")
                         .font(.system(size: 10, weight: .medium))
                 }
                 .buttonStyle(.plain)
-                .foregroundColor(.accentColor)
+                .foregroundColor(spectrogramEnabled ? .accentColor : .secondary)
+                .disabled(!spectrogramEnabled)
             }
 
             // Flags
