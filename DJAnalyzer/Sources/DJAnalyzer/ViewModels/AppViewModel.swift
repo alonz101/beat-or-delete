@@ -35,6 +35,23 @@ class AppViewModel: ObservableObject {
         items = []
     }
 
+    /// Inject an already-analyzed History result into the Analyze queue without
+    /// re-analysis. Deduped by resolved path; no-op when the file is missing.
+    func addFromHistory(_ result: AnalysisResult) {
+        guard result.fileExists != false else { return }          // no-op when missing (AC-8)
+        guard let path = result.filePath else { return }
+        let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+        if let idx = items.firstIndex(where: {
+            $0.url.resolvingSymlinksInPath() == url                // dedupe by RESOLVED path (AC-6)
+        }) {
+            items[idx].state = .done(result)                        // update-in-place, don't duplicate
+            return
+        }
+        var item = FileItem(url: url)
+        item.state = .done(result)                                  // already-.done, NO re-analysis
+        items.append(item)
+    }
+
     /// Re-run the one-shot analyze for every loaded file. Each fresh `dj-analyze`
     /// reads the new thresholds.json → new CONFIG_HASH → verdict miss → fast
     /// reverdict (cache hits the measurement, no re-FFT). Bounded by the cap=3 gate.
