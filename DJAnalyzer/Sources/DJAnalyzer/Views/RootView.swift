@@ -18,6 +18,11 @@ struct RootView: View {
                 .tabItem {
                     Label("History", systemImage: "clock.arrow.circlepath")
                 }
+
+            GuideView()
+                .tabItem {
+                    Label("Guide", systemImage: "book")
+                }
         }
         .frame(minWidth: 780, minHeight: 500)
     }
