@@ -70,7 +70,7 @@ SPEC: `docs/specs/history-tab/SPEC.md` · PLAN: `docs/specs/history-tab/PLAN.md`
 | T-3 | W2 | `Models/AnalysisResult.swift` optional analyzedAt/fileExists | DONE (review APPROVE; byte-compat decode verified) |
 | T-4 | W2 | `Services/HistoryService.swift` search(query:limit:) | DONE (review APPROVE; mirrors AnalyzerService resolution) |
 | T-5 | W2 | `ViewModels/AppViewModel.swift` addFromHistory | DONE (review APPROVE; dedupe resolved-path, guard !=false) |
-| T-6 | W3 | `Views/HistoryView.swift` + `RootView.swift` + `DJAnalyzerApp.swift` (+ReportCardView spectrogram guard AC-8) | CODE DONE (review APPROVE Swift W2+3, build clean, 144 py green; CLI --history verified vs real cache, measurements invariant held). **PENDING: user GUI click-test** |
+| T-6 | W3 | `Views/HistoryView.swift` (omnibox redesign) + `RootView.swift` + `DJAnalyzerApp.swift` + ReportCardView AC-8 guard | DONE (user GUI-verified 'feels amazing'; omnibox: single-col, typeahead dropdown, hover+↑↓+Enter/click, first highlighted. Review r2 BLOCK→fixed: keyDown monitor gated on isActive + onAppear restart (macOS TabView onDisappear unreliable). Merged to main.) |
 
 **Decisions locked:** verdict live under current CONFIG_HASH (reverdict from cache, verdicts-rows-only — never measurements); missing files listed + marked, add/spectrogram disabled; search = basename substring anywhere, prefix ranks first, recency tiebreak; click → ReportCard + addFromHistory into Analyze queue; Clear-search wipes History tab only. Q1 collapse to **most-recent row per path** (remaster→new name, dupes won't happen in practice). Q2 debounce ~150ms tune in T-6. Q3 absolute short date. Q4 missing-row → disabled affordance + note. `core/cache.py` NOT edited (golden: get_or_analyze + test_cache.py stay green).
 
