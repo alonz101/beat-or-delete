@@ -10,6 +10,11 @@ final class OmniboxController: ObservableObject {
     @Published var highlighted: Int?
     @Published private(set) var selectionToken = 0
 
+    /// True only while the History tab is on-screen. Gates the keyDown handler so a
+    /// monitor that outlives a tab switch (macOS TabView `onDisappear` is unreliable)
+    /// stays inert and never swallows ↑/↓/Enter app-wide.
+    var isActive = false
+
     /// The track chosen via Enter — read by the view when `selectionToken` changes.
     private(set) var pendingSelection: AnalysisResult?
     private var monitor: Any?
@@ -17,7 +22,7 @@ final class OmniboxController: ObservableObject {
     func startMonitor() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, !self.suggestions.isEmpty else { return event }
+            guard let self, self.isActive, !self.suggestions.isEmpty else { return event }
             switch event.keyCode {
             case 125: self.move(1);  return nil      // ↓
             case 126: self.move(-1); return nil      // ↑
@@ -85,7 +90,8 @@ struct HistoryView: View {
         .onChange(of: omni.selectionToken) { _ in
             if let r = omni.pendingSelection { addCard(r) }   // Enter on highlighted row
         }
-        .onDisappear { omni.stopMonitor() }
+        .onAppear { omni.isActive = true; if showDropdown { omni.startMonitor() } }
+        .onDisappear { omni.isActive = false; omni.stopMonitor() }
     }
 
     // MARK: - Header (search field + clear)
